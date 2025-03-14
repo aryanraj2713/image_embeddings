@@ -145,6 +145,6 @@ If you use this library in your research, please cite:
   title = {Image Embeddings: A Lightweight Library for Image Similarity},
   author = {Raj, Aryan},
   year = {2024},
-  url = {https://github.com/yourusername/image-embeddings}
+  url = {https://github.com/aryanraj2713/image_embeddings}
 }
 ```
