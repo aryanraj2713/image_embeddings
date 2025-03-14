@@ -1,7 +1,7 @@
 # Image Embeddings Library
 
 [![CI](https://github.com/aryanraj2713/image_embeddings/actions/workflows/ci.yml/badge.svg)](https://github.com/aryanraj2713/image_embeddings/actions/workflows/ci.yml)
-[![pypi.org](https://pypi.org/project/imgemb/)
+[pypi.org](https://pypi.org/project/imgemb/)
 
 A lightweight Python library for generating and comparing image embeddings using various methods. This library provides tools for image similarity search, clustering, and comparison.
 
