@@ -19,6 +19,7 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+MANIFEST
 
 # Virtual Environment
 venv/
@@ -26,6 +27,7 @@ env/
 ENV/
 .env
 .venv
+.python-version
 
 # IDE
 .idea/
@@ -33,12 +35,25 @@ ENV/
 *.swp
 *.swo
 .DS_Store
+*.sublime-project
+*.sublime-workspace
+.project
+.pydevproject
+.settings/
+.vs/
 
 # Testing
 .pytest_cache/
 .coverage
 htmlcov/
 .tox/
+.nox/
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
 
 # Project specific
 *.jpg
@@ -50,15 +65,46 @@ htmlcov/
 !tests/test_images/*.png
 !examples/images/*.jpg
 !examples/images/*.png
+embeddings.json
+output/
+temp/
+logs/
 
 # Jupyter Notebooks
 .ipynb_checkpoints
 *.ipynb
 
-# Distribution
+# Distribution / packaging
 *.tar.gz
 *.whl
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.dylib
+*.dll
+*.exe
 
-# Logs
+# Documentation
+docs/_build/
+docs/generated/
+_docs/
+site/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Misc
 *.log
-logs/ 
+*.sqlite
+*.db
+.DS_Store
+Thumbs.db
+.directory
+*.swp
+*.bak
+*~
+*.orig 

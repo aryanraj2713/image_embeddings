@@ -21,14 +21,14 @@ A lightweight Python library for generating and comparing image embeddings using
 ### From PyPI (Recommended)
 
 ```bash
-pip install image-embeddings
+pip install imgemb
 ```
 
 ### From Source
 
 ```bash
-git clone https://github.com/yourusername/image-embeddings.git
-cd image-embeddings
+git clone https://github.com/aryanraj2713/image_embeddings.git
+cd image_embeddings
 pip install -e ".[dev]"  # Install with development dependencies
 ```
 
@@ -37,7 +37,7 @@ pip install -e ".[dev]"  # Install with development dependencies
 ### Using as a Python Library
 
 ```python
-from image_embeddings import ImageEmbedder
+from imgemb import ImageEmbedder
 
 # Initialize embedder
 embedder = ImageEmbedder(
@@ -64,17 +64,17 @@ similar_images = embedder.find_similar_images(
 
 1. Compare two images:
 ```bash
-image-embeddings compare image1.jpg image2.jpg --method grid --grid-size 4 4
+imgemb compare image1.jpg image2.jpg --method grid --grid-size 4 4
 ```
 
 2. Generate embeddings for images:
 ```bash
-image-embeddings generate path/to/images/ --output embeddings.json --method edge
+imgemb generate path/to/images/ --output embeddings.json --method edge
 ```
 
 3. Find similar images:
 ```bash
-image-embeddings find-similar query.jpg image/directory/ -k 5 --method grid
+imgemb find-similar query.jpg image/directory/ -k 5 --method grid
 ```
 
 ## Embedding Methods
