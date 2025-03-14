@@ -1,5 +1,8 @@
 # Image Embeddings Library
 
+[![CI](https://github.com/aryanraj2713/image_embeddings/actions/workflows/ci.yml/badge.svg)](https://github.com/aryanraj2713/image_embeddings/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/aryanraj2713/image_embeddings/branch/main/graph/badge.svg)](https://codecov.io/gh/aryanraj2713/image_embeddings)
+
 A lightweight Python library for generating and comparing image embeddings using various methods. This library provides tools for image similarity search, clustering, and comparison.
 
 ## Features
