@@ -15,6 +15,8 @@ from image_embeddings.cli.main import (
     parse_args,
 )
 import cv2
+import pickle
+from image_embeddings.embedder import ImageEmbedder
 
 
 @pytest.fixture
@@ -243,3 +245,69 @@ def test_main_find_similar(test_images):
         ["find-similar", img1_path, img_dir, "-k", "2", "--method", "average_color"]
     )
     assert result == 0
+
+
+def test_generate_embeddings_error_handling(tmp_path):
+    """Test error handling in generate_embeddings function."""
+    # Test with non-existent directory
+    with pytest.raises(SystemExit):
+        generate_embeddings("nonexistent_dir", "output.pkl", method="average_color")
+    
+    # Test with invalid method
+    with pytest.raises(ValueError) as exc_info:
+        embedder = ImageEmbedder(method="invalid_method")
+    assert "Invalid method: invalid_method" in str(exc_info.value)
+
+
+def test_find_similar_error_handling(tmp_path):
+    """Test error handling in find_similar function."""
+    # Create a test image
+    test_img_path = tmp_path / "test.jpg"
+    img = np.zeros((100, 100, 3), dtype=np.uint8)
+    cv2.imwrite(str(test_img_path), img)
+    
+    # Test with non-existent query image
+    with pytest.raises(ValueError) as exc_info:
+        embedder = ImageEmbedder()
+        embedder.embed_image("nonexistent.jpg")
+    assert "Could not load image at" in str(exc_info.value)
+    
+    # Test with non-existent directory
+    with pytest.raises(ValueError) as exc_info:
+        embedder = ImageEmbedder()
+        embedder.find_similar_images(str(test_img_path), "nonexistent_dir")
+    assert "Directory does not exist" in str(exc_info.value)
+
+
+def test_help_text(capsys):
+    """Test help text display."""
+    with pytest.raises(SystemExit):
+        main(["--help"])
+    captured = capsys.readouterr()
+    assert "usage:" in captured.out
+    assert "compare" in captured.out
+    assert "generate" in captured.out
+    assert "find-similar" in captured.out
+
+
+def test_version_display(capsys):
+    """Test version information display."""
+    with pytest.raises(SystemExit):
+        main(["--version"])
+    captured = capsys.readouterr()
+    assert "error: unrecognized arguments: --version" in captured.err
+
+
+def test_main_error_handling(capsys):
+    """Test error handling in main function."""
+    # Test with invalid command
+    with pytest.raises(SystemExit):
+        main(["invalid_command"])
+    captured = capsys.readouterr()
+    assert "invalid choice: 'invalid_command'" in captured.err
+
+    # Test with missing required arguments
+    with pytest.raises(SystemExit):
+        main(["generate"])
+    captured = capsys.readouterr()
+    assert "error:" in captured.err

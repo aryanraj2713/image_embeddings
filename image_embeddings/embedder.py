@@ -138,6 +138,10 @@ class ImageEmbedder:
         Returns:
             List of (image_path, similarity_score) tuples for the top_k most similar images
         """
+        # Check if directory exists
+        if not os.path.exists(image_dir):
+            raise ValueError(f"Directory does not exist: {image_dir}")
+
         # Generate query embedding
         query_embedding = self.embed_image(query_image)
 
