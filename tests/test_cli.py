@@ -252,7 +252,7 @@ def test_generate_embeddings_error_handling(tmp_path):
     # Test with non-existent directory
     with pytest.raises(SystemExit):
         generate_embeddings("nonexistent_dir", "output.pkl", method="average_color")
-    
+
     # Test with invalid method
     with pytest.raises(ValueError) as exc_info:
         embedder = ImageEmbedder(method="invalid_method")
@@ -265,13 +265,13 @@ def test_find_similar_error_handling(tmp_path):
     test_img_path = tmp_path / "test.jpg"
     img = np.zeros((100, 100, 3), dtype=np.uint8)
     cv2.imwrite(str(test_img_path), img)
-    
+
     # Test with non-existent query image
     with pytest.raises(ValueError) as exc_info:
         embedder = ImageEmbedder()
         embedder.embed_image("nonexistent.jpg")
     assert "Could not load image at" in str(exc_info.value)
-    
+
     # Test with non-existent directory
     with pytest.raises(ValueError) as exc_info:
         embedder = ImageEmbedder()
