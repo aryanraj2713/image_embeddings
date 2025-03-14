@@ -42,8 +42,8 @@ setup(
         ],
     },
     entry_points={
-        'console_scripts': [
-            'image-embeddings=image_embeddings.cli.main:main',
+        "console_scripts": [
+            "image-embeddings=image_embeddings.cli.main:main",
         ],
     },
 )
