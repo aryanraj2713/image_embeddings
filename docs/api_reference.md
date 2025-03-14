@@ -1,66 +1,149 @@
 # API Reference
 
-## ImageEmbedder
+## ImageEmbedder Class
 
-The main class for generating image embeddings.
+The main class for generating and comparing image embeddings.
 
 ### Constructor
 
 ```python
 ImageEmbedder(
-    method: str = 'average_color',
+    method: str = 'grid',
     grid_size: Tuple[int, int] = (4, 4),
-    normalize: bool = True
+    normalize: bool = True,
+    color_space: str = 'rgb'
 )
 ```
 
 #### Parameters
 
-- `method` (str, optional):
-  - Available methods: 'average_color', 'grid', 'edge'
-  - Default: 'average_color'
-
-- `grid_size` (Tuple[int, int], optional):
-  - Grid dimensions for grid-based embedding
-  - Only used when method='grid'
-  - Default: (4, 4)
-
-- `normalize` (bool, optional):
-  - Whether to normalize embeddings to unit length
-  - Default: True
+- `method` (str): The embedding method to use. Options:
+  - `'average_color'`: Simple RGB color averaging
+  - `'grid'`: Grid-based color features
+  - `'edge'`: Edge-based features using Sobel
+- `grid_size` (tuple): Grid dimensions for the grid method (rows, cols)
+- `normalize` (bool): Whether to normalize embeddings to unit length
+- `color_space` (str): Color space to use ('rgb' or 'hsv')
 
 ### Methods
 
 #### embed_image
 
 ```python
-embed_image(image_path: str) -> np.ndarray
+def embed_image(self, image_path: str) -> np.ndarray:
+    """Generate embedding for a single image."""
 ```
 
-Generate embedding from an image file.
-
-##### Parameters
+**Parameters:**
 - `image_path` (str): Path to the image file
 
-##### Returns
-- `np.ndarray`: Image embedding
+**Returns:**
+- `np.ndarray`: Image embedding vector
 
-##### Raises
-- `ValueError`: If image cannot be read or path is invalid
-
-#### embed
-
+**Example:**
 ```python
-embed(image: np.ndarray) -> np.ndarray
+embedder = ImageEmbedder(method='grid')
+embedding = embedder.embed_image('path/to/image.jpg')
+print(f"Embedding shape: {embedding.shape}")
 ```
 
-Generate embedding from an image array.
+#### compare_images
 
-##### Parameters
-- `image` (np.ndarray): Input image in BGR format
+```python
+def compare_images(
+    self,
+    image1_path: str,
+    image2_path: str,
+    metric: str = 'cosine'
+) -> float:
+    """Compare similarity between two images."""
+```
 
-##### Returns
-- `np.ndarray`: Image embedding
+**Parameters:**
+- `image1_path` (str): Path to first image
+- `image2_path` (str): Path to second image
+- `metric` (str): Similarity metric ('cosine' or 'euclidean')
+
+**Returns:**
+- `float`: Similarity score (higher is more similar for cosine, lower for euclidean)
+
+**Example:**
+```python
+similarity = embedder.compare_images('image1.jpg', 'image2.jpg', metric='cosine')
+print(f"Similarity score: {similarity:.3f}")
+```
+
+#### find_similar_images
+
+```python
+def find_similar_images(
+    self,
+    query_path: str,
+    image_dir: str,
+    top_k: int = 5,
+    metric: str = 'cosine'
+) -> List[Tuple[str, float]]:
+    """Find most similar images to a query image in a directory."""
+```
+
+**Parameters:**
+- `query_path` (str): Path to query image
+- `image_dir` (str): Directory containing images to search
+- `top_k` (int): Number of similar images to return
+- `metric` (str): Similarity metric ('cosine' or 'euclidean')
+
+**Returns:**
+- `List[Tuple[str, float]]`: List of (image_path, similarity_score) pairs
+
+**Example:**
+```python
+similar_images = embedder.find_similar_images(
+    'query.jpg',
+    'image/directory/',
+    top_k=5
+)
+for path, score in similar_images:
+    print(f"{path}: {score:.3f}")
+```
+
+## Command Line Interface
+
+### Compare Images
+
+```bash
+imgemb compare [OPTIONS] IMAGE1 IMAGE2
+```
+
+**Options:**
+- `--method TEXT`: Embedding method [default: grid]
+- `--grid-size INT INT`: Grid dimensions [default: 4 4]
+- `--metric TEXT`: Similarity metric [default: cosine]
+- `--normalize`: Normalize embeddings [default: True]
+
+### Generate Embeddings
+
+```bash
+imgemb generate [OPTIONS] INPUT_DIR
+```
+
+**Options:**
+- `--output TEXT`: Output JSON file [required]
+- `--method TEXT`: Embedding method [default: grid]
+- `--grid-size INT INT`: Grid dimensions [default: 4 4]
+- `--normalize`: Normalize embeddings [default: True]
+
+### Find Similar Images
+
+```bash
+imgemb find-similar [OPTIONS] QUERY_IMAGE IMAGE_DIR
+```
+
+**Options:**
+- `-k, --top-k INT`: Number of similar images [default: 5]
+- `--method TEXT`: Embedding method [default: grid]
+- `--grid-size INT INT`: Grid dimensions [default: 4 4]
+- `--metric TEXT`: Similarity metric [default: cosine]
+- `--normalize`: Normalize embeddings [default: True]
 
 ## BaseEmbedder
 

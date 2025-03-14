@@ -1,162 +1,194 @@
-# Image Embeddings Usage Guide
-
-This guide provides detailed information about using the Image Embeddings library for generating numerical representations of images.
+# Usage Guide
 
 ## Installation
 
+### From PyPI
+
 ```bash
-pip install image-embeddings
+pip install imgemb
+```
+
+### From Source
+
+```bash
+git clone https://github.com/aryanraj2713/image_embeddings.git
+cd image_embeddings
+pip install -e ".[dev]"  # Install with development dependencies
 ```
 
 ## Basic Usage
 
-The library provides a simple interface for generating image embeddings:
+### 1. Generating Image Embeddings
 
 ```python
-from image_embeddings import ImageEmbedder
+from imgemb import ImageEmbedder
 
-# Create an embedder instance
-embedder = ImageEmbedder()
-
-# Generate embedding from an image file
-embedding = embedder.embed_image("path/to/image.jpg")
-
-# Or generate embedding from a numpy array
-import cv2
-image = cv2.imread("path/to/image.jpg")
-embedding = embedder.embed(image)
-```
-
-## Embedding Methods
-
-### 1. Average Color Embedding
-
-The simplest method that computes the mean color values across the image:
-
-```python
-embedder = ImageEmbedder(method='average_color')
-```
-
-- Output shape: `(3,)` representing BGR channels
-- Best for: Quick color-based similarity comparisons
-- Limitations: Loses spatial information
-
-### 2. Grid-based Embedding
-
-Divides the image into a grid and computes local features:
-
-```python
+# Initialize embedder with desired method
 embedder = ImageEmbedder(
-    method='grid',
-    grid_size=(4, 4)  # Creates a 4x4 grid
+    method='grid',           # Choose from: 'average_color', 'grid', 'edge'
+    grid_size=(4, 4),       # For grid method
+    normalize=True,         # Normalize embeddings to unit length
+    color_space='rgb'      # Color space for feature extraction
 )
+
+# Generate embedding for a single image
+embedding = embedder.embed_image('path/to/image.jpg')
+print(f"Embedding shape: {embedding.shape}")
 ```
 
-- Output shape: `(grid_height * grid_width * 3,)`
-- Best for: Preserving spatial information
-- Customization: Adjust `grid_size` for different granularity
-
-### 3. Edge-based Embedding
-
-Uses edge detection to create a histogram-based embedding:
+### 2. Comparing Images
 
 ```python
-embedder = ImageEmbedder(method='edge')
-```
-
-- Output shape: `(64,)` representing edge intensity histogram
-- Best for: Shape and texture analysis
-- Features: Invariant to color changes
-
-## Configuration Options
-
-### Normalization
-
-By default, embeddings are normalized to unit length. Disable with:
-
-```python
-embedder = ImageEmbedder(normalize=False)
-```
-
-### Grid Size
-
-For grid-based embeddings, customize the grid dimensions:
-
-```python
-embedder = ImageEmbedder(
-    method='grid',
-    grid_size=(8, 8)  # More detailed grid
+# Compare two images directly
+similarity = embedder.compare_images(
+    'image1.jpg',
+    'image2.jpg',
+    metric='cosine'  # or 'euclidean'
 )
+print(f"Similarity score: {similarity:.3f}")
+
+# Find similar images in a directory
+similar_images = embedder.find_similar_images(
+    'query.jpg',
+    'image/directory/',
+    top_k=5,
+    metric='cosine'
+)
+
+# Print results
+for path, score in similar_images:
+    print(f"{path}: {score:.3f}")
+```
+
+## Advanced Usage
+
+### 1. Batch Processing
+
+```python
+import glob
+import numpy as np
+
+# Process multiple images
+image_paths = glob.glob('images/*.jpg')
+embeddings = []
+
+for path in image_paths:
+    embedding = embedder.embed_image(path)
+    embeddings.append(embedding)
+
+# Convert to numpy array for efficient processing
+embeddings = np.array(embeddings)
+```
+
+### 2. Image Clustering
+
+```python
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+
+# Standardize features
+scaler = StandardScaler()
+scaled_embeddings = scaler.fit_transform(embeddings)
+
+# Perform clustering
+n_clusters = 5
+kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+clusters = kmeans.fit_predict(scaled_embeddings)
+
+# Analyze clusters
+for cluster in range(n_clusters):
+    cluster_size = np.sum(clusters == cluster)
+    print(f"\nCluster {cluster}:")
+    print(f"Size: {cluster_size} images")
+```
+
+### 3. Custom Similarity Metrics
+
+```python
+def manhattan_distance(a: np.ndarray, b: np.ndarray) -> float:
+    """Custom similarity metric using Manhattan distance."""
+    return np.sum(np.abs(a - b))
+
+# Use custom metric for comparison
+def compare_custom(image1_path: str, image2_path: str) -> float:
+    emb1 = embedder.embed_image(image1_path)
+    emb2 = embedder.embed_image(image2_path)
+    return manhattan_distance(emb1, emb2)
+```
+
+## Command Line Interface
+
+### 1. Compare Two Images
+
+```bash
+# Basic comparison
+imgemb compare image1.jpg image2.jpg
+
+# Advanced options
+imgemb compare image1.jpg image2.jpg \
+    --method grid \
+    --grid-size 4 4 \
+    --metric cosine \
+    --normalize
+```
+
+### 2. Generate Embeddings
+
+```bash
+# Generate embeddings for a directory of images
+imgemb generate images/ \
+    --output embeddings.json \
+    --method edge \
+    --normalize
+```
+
+### 3. Find Similar Images
+
+```bash
+# Find similar images with custom parameters
+imgemb find-similar query.jpg images/ \
+    -k 5 \
+    --method grid \
+    --grid-size 8 8 \
+    --metric cosine
 ```
 
 ## Best Practices
 
-1. **Choose the Right Method:**
-   - Use `average_color` for simple color matching
-   - Use `grid` for spatial awareness
-   - Use `edge` for shape matching
+1. **Choosing Embedding Methods:**
+   - `average_color`: Best for simple color-based similarity
+   - `grid`: Good balance between detail and efficiency
+   - `edge`: Best for structural similarity
 
-2. **Normalization:**
-   - Keep normalization enabled for similarity comparisons
-   - Disable for absolute value analysis
+2. **Performance Optimization:**
+   - Pre-compute embeddings for large datasets
+   - Use batch processing for multiple images
+   - Consider dimensionality reduction for large embeddings
 
-3. **Grid Size Selection:**
-   - Larger grids capture more detail but increase dimensionality
-   - Start with 4x4 and adjust based on needs
+3. **Memory Management:**
+   - Process images in batches for large datasets
+   - Clear unused embeddings from memory
+   - Use memory-mapped files for large datasets
 
-## Example Applications
-
-### Image Similarity
-
-```python
-from image_embeddings import ImageEmbedder
-import numpy as np
-
-embedder = ImageEmbedder(method='grid')
-
-# Generate embeddings
-emb1 = embedder.embed_image("image1.jpg")
-emb2 = embedder.embed_image("image2.jpg")
-
-# Compare using cosine similarity
-similarity = np.dot(emb1, emb2)
-```
-
-### Batch Processing
-
-```python
-import glob
-from image_embeddings import ImageEmbedder
-
-embedder = ImageEmbedder()
-embeddings = []
-
-# Process multiple images
-for image_path in glob.glob("images/*.jpg"):
-    embedding = embedder.embed_image(image_path)
-    embeddings.append(embedding)
-```
-
-## Error Handling
-
-The library includes robust error handling:
-
+4. **Error Handling:**
 ```python
 try:
-    embedding = embedder.embed_image("nonexistent.jpg")
-except ValueError as e:
-    print(f"Error: {e}")
+    embedding = embedder.embed_image(image_path)
+except Exception as e:
+    print(f"Error processing {image_path}: {e}")
+    # Handle error appropriately
 ```
 
-Common errors:
-- Invalid image path
-- Unsupported image format
-- Invalid method name
-- Invalid grid size
+5. **Visualization Tips:**
+```python
+import matplotlib.pyplot as plt
 
-## Performance Considerations
-
-- Edge detection is more computationally intensive
-- Grid-based embedding memory usage increases with grid size
-- Consider batch processing for multiple images
-- Use appropriate grid size for your image dimensions 
+def visualize_embedding(embedding):
+    plt.figure(figsize=(10, 4))
+    plt.plot(embedding)
+    plt.title("Embedding Visualization")
+    plt.xlabel("Dimension")
+    plt.ylabel("Value")
+    plt.grid(True)
+    plt.show()
+``` 
