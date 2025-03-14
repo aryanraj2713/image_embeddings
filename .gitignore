@@ -1,0 +1,64 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.env
+.venv
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Project specific
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.bmp
+!tests/test_images/*.jpg
+!tests/test_images/*.png
+!examples/images/*.jpg
+!examples/images/*.png
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+*.ipynb
+
+# Distribution
+*.tar.gz
+*.whl
+
+# Logs
+*.log
+logs/ 
