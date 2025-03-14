@@ -133,7 +133,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Requirements
 
-- Python ≥ 3.7
+- Python ≥ 3.8
 - OpenCV (opencv-python)
 - NumPy
 - Matplotlib
