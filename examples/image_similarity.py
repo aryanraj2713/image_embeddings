@@ -19,11 +19,11 @@ from pathlib import Path
 
 def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
     """Compute cosine similarity between two vectors.
-    
+
     Args:
         a (np.ndarray): First vector
         b (np.ndarray): Second vector
-    
+
     Returns:
         float: Cosine similarity score (1.0 = most similar)
     """
@@ -32,11 +32,11 @@ def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
 
 def euclidean_distance(a: np.ndarray, b: np.ndarray) -> float:
     """Compute Euclidean distance between two vectors.
-    
+
     Args:
         a (np.ndarray): First vector
         b (np.ndarray): Second vector
-    
+
     Returns:
         float: Euclidean distance (0.0 = most similar)
     """
@@ -45,11 +45,11 @@ def euclidean_distance(a: np.ndarray, b: np.ndarray) -> float:
 
 def manhattan_distance(a: np.ndarray, b: np.ndarray) -> float:
     """Compute Manhattan distance between two vectors.
-    
+
     Args:
         a (np.ndarray): First vector
         b (np.ndarray): Second vector
-    
+
     Returns:
         float: Manhattan distance (0.0 = most similar)
     """
@@ -64,19 +64,19 @@ def find_most_similar(
     top_k: int = 5,
 ) -> List[Tuple[str, float]]:
     """Find the most similar images to a query image.
-    
+
     Args:
         query_embedding (np.ndarray): Query image embedding
         embeddings (List[np.ndarray]): List of embeddings to compare against
         image_paths (List[str]): List of corresponding image paths
         metric (str): Similarity metric ('cosine', 'euclidean', or 'manhattan')
         top_k (int): Number of similar images to return
-    
+
     Returns:
         List[Tuple[str, float]]: List of (image_path, similarity_score) pairs
     """
     similarities = []
-    
+
     for emb, path in zip(embeddings, image_paths):
         if metric == "cosine":
             score = cosine_similarity(query_embedding, emb)
@@ -97,12 +97,10 @@ def find_most_similar(
 
 
 def plot_similar_images(
-    query_path: str,
-    similar_images: List[Tuple[str, float]],
-    metric: str = "cosine"
+    query_path: str, similar_images: List[Tuple[str, float]], metric: str = "cosine"
 ) -> None:
     """Plot query image and its most similar matches.
-    
+
     Args:
         query_path (str): Path to query image
         similar_images (List[Tuple[str, float]]): List of similar image paths and scores
@@ -134,18 +132,17 @@ def plot_similar_images(
 
 
 def analyze_results(
-    similar_images: List[Tuple[str, float]],
-    metric: str = "cosine"
+    similar_images: List[Tuple[str, float]], metric: str = "cosine"
 ) -> None:
     """Print analysis of similarity results.
-    
+
     Args:
         similar_images (List[Tuple[str, float]]): List of similar image paths and scores
         metric (str): Similarity metric used
     """
     print("\nSimilarity Analysis:")
     print("-" * 50)
-    
+
     for i, (path, score) in enumerate(similar_images, 1):
         filename = os.path.basename(path)
         if metric == "cosine":
@@ -157,10 +154,7 @@ def analyze_results(
 def main():
     # Initialize embedder with grid method for better spatial awareness
     embedder = ImageEmbedder(
-        method="grid",
-        grid_size=(8, 8),
-        normalize=True,
-        color_space="rgb"
+        method="grid", grid_size=(8, 8), normalize=True, color_space="rgb"
     )
 
     # Directory containing images
@@ -188,16 +182,13 @@ def main():
     # Find similar images using different metrics
     print("\nFinding similar images...")
     metrics = ["cosine", "euclidean", "manhattan"]
-    
+
     for metric in metrics:
         print(f"\nResults using {metric.capitalize()} metric:")
         similar_images = find_most_similar(
-            query_embedding,
-            embeddings,
-            image_paths,
-            metric=metric
+            query_embedding, embeddings, image_paths, metric=metric
         )
-        
+
         # Analyze and visualize results
         analyze_results(similar_images, metric)
         plot_similar_images(query_path, similar_images, metric)

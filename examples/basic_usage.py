@@ -12,7 +12,7 @@ import os
 
 def plot_embedding(embedding: np.ndarray, title: str) -> None:
     """Helper function to visualize embeddings.
-    
+
     Args:
         embedding (np.ndarray): The embedding vector to visualize
         title (str): Title for the plot
@@ -27,7 +27,7 @@ def plot_embedding(embedding: np.ndarray, title: str) -> None:
 
 def compare_images(embedder: ImageEmbedder, image1_path: str, image2_path: str) -> None:
     """Compare two images using different similarity metrics.
-    
+
     Args:
         embedder (ImageEmbedder): Initialized embedder instance
         image1_path (str): Path to first image
@@ -36,12 +36,16 @@ def compare_images(embedder: ImageEmbedder, image1_path: str, image2_path: str) 
     # Generate embeddings
     emb1 = embedder.embed_image(image1_path)
     emb2 = embedder.embed_image(image2_path)
-    
+
     # Compare using different metrics
-    cosine_sim = embedder.compare_images(image1_path, image2_path, metric='cosine')
-    euclidean_dist = embedder.compare_images(image1_path, image2_path, metric='euclidean')
-    
-    print(f"\nComparing {os.path.basename(image1_path)} and {os.path.basename(image2_path)}:")
+    cosine_sim = embedder.compare_images(image1_path, image2_path, metric="cosine")
+    euclidean_dist = embedder.compare_images(
+        image1_path, image2_path, metric="euclidean"
+    )
+
+    print(
+        f"\nComparing {os.path.basename(image1_path)} and {os.path.basename(image2_path)}:"
+    )
     print(f"Cosine similarity: {cosine_sim:.3f}")
     print(f"Euclidean distance: {euclidean_dist:.3f}")
 
@@ -53,20 +57,11 @@ def main():
 
     # Create embedders with different methods
     embedders = {
-        "Average Color": ImageEmbedder(
-            method="average_color",
-            normalize=True
-        ),
+        "Average Color": ImageEmbedder(method="average_color", normalize=True),
         "Grid (4x4)": ImageEmbedder(
-            method="grid",
-            grid_size=(4, 4),
-            normalize=True,
-            color_space='rgb'
+            method="grid", grid_size=(4, 4), normalize=True, color_space="rgb"
         ),
-        "Edge": ImageEmbedder(
-            method="edge",
-            normalize=True
-        ),
+        "Edge": ImageEmbedder(method="edge", normalize=True),
     }
 
     # Generate and visualize embeddings
