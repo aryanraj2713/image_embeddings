@@ -1,16 +1,16 @@
 [build-system]
-requires = ["setuptools>=45", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "imgemb"
-version = "0.1.5"
+version = "0.1.9"
 description = "A lightweight Python library for generating image embeddings with semantic search"
-readme = "README.md"
 authors = [
-    {name = "Aryan Raj", email = "aryanraj2713@gmail.com"}
+    { name = "Aryan Raj", email = "aryanraj2713@gmail.com" }
 ]
 license = {text = "MIT"}
+readme = "README.md"
 requires-python = ">=3.8"
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -33,7 +33,6 @@ dependencies = [
     "scikit-learn>=0.24.0",
     "torch>=2.0.0",
     "torchvision>=0.15.0",
-    "clip @ git+https://github.com/openai/CLIP.git",
     "Pillow>=9.0.0",
 ]
 
@@ -46,3 +45,14 @@ dev = [
 
 [project.scripts]
 imgemb = "image_embeddings.cli.main:main"
+
+[project.urls]
+"Homepage" = "https://github.com/aryanraj2713/image_embeddings"
+"Bug Tracker" = "https://github.com/aryanraj2713/image_embeddings/issues"
+
+[tool.pytest.ini_options]
+addopts = "-v"
+testpaths = ["tests"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["image_embeddings"]
