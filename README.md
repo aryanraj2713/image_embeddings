@@ -1,153 +1,181 @@
 # Imgemb
 
-[![CI](https://github.com/aryanraj2713/image_embeddings/actions/workflows/ci.yml/badge.svg)](https://github.com/aryanraj2713/image_embeddings/actions/workflows/ci.yml)
-[pypi.org](https://pypi.org/project/imgemb/)
+[![PyPI version](https://badge.fury.io/py/imgemb.svg)](https://badge.fury.io/py/imgemb)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A lightweight Python library for generating and comparing image embeddings using various methods. This library provides tools for image similarity search, clustering, and comparison.
+A lightweight Python library for generating and comparing image embeddings, featuring semantic search capabilities powered by OpenCLIP.
 
 ## Features
 
-- Multiple embedding methods:
-  - **Average Color**: Simple RGB color averaging
-  - **Grid-based**: Divides image into grid cells and computes color features
-  - **Edge-based**: Uses Sobel edge detection and histogram features
-  - **CLIP-based**: Semantic embeddings for natural language search
-- Command-line interface (CLI) for easy usage
-- Normalization options for embeddings
-- Tools for finding similar images in a directory
-- Support for batch processing
-- **Semantic Search**:
-  - Natural language queries for image search
-  - Zero-shot image classification
-  - Cross-modal understanding between text and images
-  - GPU acceleration support
+- **Multiple Embedding Methods**:
+  - Average Color: Simple RGB/HSV color averaging
+  - Grid-based: Divide image into grid cells and compute color statistics
+  - Edge-based: Extract edge features using Sobel operators
+  - Semantic Search: Utilize OpenCLIP for advanced image understanding
+
+- **Command Line Interface (CLI)**: Easy-to-use commands for:
+  - Generating embeddings
+  - Comparing images
+  - Finding similar images
+  - Batch processing directories
+
+- **Python API**: Flexible and intuitive API for integration into your projects
+
+- **Efficient Processing**: Optimized for both CPU and GPU environments
 
 ## Installation
 
-### From PyPI (Recommended)
-
+### From PyPI
 ```bash
 pip install imgemb
 ```
 
 ### From Source
-
 ```bash
 git clone https://github.com/aryanraj2713/image_embeddings.git
 cd image_embeddings
-pip install -e ".[dev]"  # Install with development dependencies
+pip install -e .
 ```
 
 ## Quick Start
 
-### Using as a Python Library
+### Command Line Usage
 
-```python
-from imgemb import ImageEmbedder
-
-# Initialize embedder
-embedder = ImageEmbedder(
-    method='grid',           # 'average_color', 'grid', or 'edge'
-    grid_size=(4, 4),       # For grid method
-    normalize=True          # Whether to normalize embeddings
-)
-
-# Generate embedding for a single image
-embedding = embedder.embed_image('path/to/image.jpg')
-
-# Compare two images
-similarity = embedder.compare_images('image1.jpg', 'image2.jpg')
-
-# Find similar images in a directory
-similar_images = embedder.find_similar_images(
-    'query.jpg',
-    'path/to/image/directory',
-    top_k=5
-)
+1. Generate embeddings for an image:
+```bash
+imgemb generate input.jpg --method grid --grid-size 3 3
 ```
 
-### Semantic Search
+2. Compare two images:
+```bash
+imgemb compare image1.jpg image2.jpg --method average
+```
 
+3. Find similar images in a directory:
+```bash
+imgemb find-similar query.jpg images_dir/ --top-k 5
+```
+
+### Python API
+
+#### Basic Usage
 ```python
-from imgemb import SemanticSearcher
+from imgemb import ImageEmbedder, SemanticSearcher
 
-# Initialize searcher
+# Generate embeddings using different methods
+embedder = ImageEmbedder(method="grid", grid_size=(3, 3))
+embedding = embedder.embed_image("path/to/image.jpg")
+
+# Semantic search
 searcher = SemanticSearcher()
-
-# Index a directory of images
-searcher.index_directory("path/to/images")
-
-# Search using natural language
-results = searcher.search("a photo of a dog playing in the park", top_k=5)
-
-# Print results
-for path, score in results:
-    print(f"{path}: {score:.3f}")
+searcher.index_directory("path/to/image/directory")
+results = searcher.search("a photo of a dog", top_k=5)
 ```
 
-### Using the Command Line Interface
-
-1. Compare two images:
-```bash
-imgemb compare image1.jpg image2.jpg --method grid --grid-size 4 4
-```
-
-2. Generate embeddings for images:
-```bash
-imgemb generate path/to/images/ --output embeddings.json --method edge
-```
-
-3. Find similar images:
-```bash
-imgemb find-similar query.jpg image/directory/ -k 5 --method grid
-```
-
-## Embedding Methods
-
-### Average Color
-Computes the mean RGB values of the entire image. Simple but effective for basic color-based similarity.
-
+#### Advanced Usage
 ```python
-embedder = ImageEmbedder(method='average_color')
+# Custom grid size with normalization
+embedder = ImageEmbedder(
+    method="grid",
+    grid_size=(4, 4),
+    normalize=True,
+    color_space="hsv"
+)
+
+# Batch processing with edge detection
+embedder = ImageEmbedder(method="edge")
+embeddings = embedder.embed_directory(
+    "path/to/directory",
+    extensions=[".jpg", ".png"]
+)
+
+# Semantic search with threshold
+searcher = SemanticSearcher(device="cuda")  # Use GPU if available
+searcher.index_directory("image_database")
+results = searcher.search(
+    "abstract art",
+    top_k=10,
+    threshold=0.7  # Only return results with similarity > 0.7
+)
 ```
 
-### Grid-based
-Divides the image into a grid and computes mean RGB values for each cell. Better for capturing spatial color distribution.
+## API Documentation
 
-```python
-embedder = ImageEmbedder(method='grid', grid_size=(4, 4))
-```
+### ImageEmbedder
 
-### Edge-based
-Uses Sobel edge detection and histogram features. Good for capturing structural similarities.
+#### Methods
+- `__init__(method="average", grid_size=None, normalize=False, color_space="rgb")`
+  - `method`: Embedding method ("average", "grid", "edge")
+  - `grid_size`: Tuple of (rows, cols) for grid method
+  - `normalize`: Whether to normalize embeddings
+  - `color_space`: Color space to use ("rgb" or "hsv")
 
-```python
-embedder = ImageEmbedder(method='edge')
-```
+- `embed_image(image_path: str) -> np.ndarray`
+  - Generates embedding for a single image
+  - Returns numpy array of embedding values
+
+- `embed_directory(directory: str, extensions: List[str] = None) -> Dict[str, np.ndarray]`
+  - Generates embeddings for all images in directory
+  - Returns dictionary mapping file paths to embeddings
+
+### SemanticSearcher
+
+#### Methods
+- `__init__(device="cuda", model_name="ViT-B-32")`
+  - `device`: Computing device ("cuda" or "cpu")
+  - `model_name`: OpenCLIP model variant
+
+- `index_directory(directory: str, extensions: List[str] = None)`
+  - Indexes all images in specified directory
+  - Optional file extension filtering
+
+- `search(query: str, top_k: int = 5, threshold: float = 0.0) -> List[Tuple[str, float]]`
+  - Searches for images matching text query
+  - Returns list of (image_path, similarity_score) tuples
 
 ## Development
 
 ### Setup Development Environment
-
 ```bash
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
 # Install development dependencies
 pip install -e ".[dev]"
+
+# Run tests
+pytest tests/
+
+# Format code
+black image_embeddings/ tests/
+
+# Run linter
+flake8 image_embeddings/ tests/
 ```
 
 ### Running Tests
-
 ```bash
-pytest tests/ -v
+# Run all tests
+pytest
+
+# Run with coverage report
+pytest --cov=image_embeddings
+
+# Generate HTML coverage report
+pytest --cov=image_embeddings --cov-report=html
 ```
+
+## Requirements
+
+- Python 3.8+
+- PyTorch 2.0+
+- OpenCV 4.5+
+- NumPy 1.19+
+- Pillow 9.0+
+- open-clip-torch 2.20+
 
 ## Contributing
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
 3. Commit your changes (`git commit -m 'Add amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
@@ -156,23 +184,16 @@ pytest tests/ -v
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Requirements
-
-- Python ≥ 3.8
-- OpenCV (opencv-python)
-- NumPy
-- Matplotlib
-- scikit-learn
-
 ## Citation
 
 If you use this library in your research, please cite:
 
 ```bibtex
-@software{image_embeddings,
-  title = {Image Embeddings: A Lightweight Library for Image Similarity},
-  author = {Raj, Aryan},
+@software{imgemb,
+  author = {Aryan Raj},
+  title = {Imgemb: A Lightweight Python Library for Image Embeddings},
   year = {2024},
+  publisher = {GitHub},
   url = {https://github.com/aryanraj2713/image_embeddings}
 }
 ```
