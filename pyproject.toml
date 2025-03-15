@@ -34,6 +34,7 @@ dependencies = [
     "torch>=2.0.0",
     "torchvision>=0.15.0",
     "Pillow>=9.0.0",
+    "open-clip-torch>=2.20.0",
 ]
 
 [project.optional-dependencies]
@@ -41,6 +42,8 @@ dev = [
     "pytest>=6.0",
     "black>=21.0",
     "flake8>=3.9",
+    "pytest-cov>=4.1.0",
+    "pytest-html>=4.1.1",
 ]
 
 [project.scripts]
