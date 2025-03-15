@@ -6,7 +6,8 @@ including different embedding methods and visualization.
 
 import numpy as np
 from imgemb import ImageEmbedder
-import matplotlib.pyplot as plt
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import os
 
 
@@ -17,12 +18,12 @@ def plot_embedding(embedding: np.ndarray, title: str) -> None:
         embedding (np.ndarray): The embedding vector to visualize
         title (str): Title for the plot
     """
-    plt.figure(figsize=(10, 4))
-    plt.plot(embedding)
-    plt.title(title)
-    plt.xlabel("Dimension")
-    plt.ylabel("Value")
-    plt.grid(True)
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(y=embedding, mode="lines"))
+    fig.update_layout(
+        title=title, xaxis_title="Dimension", yaxis_title="Value", showlegend=False
+    )
+    fig.show()
 
 
 def compare_images(embedder: ImageEmbedder, image1_path: str, image2_path: str) -> None:
@@ -65,7 +66,10 @@ def main():
     }
 
     # Generate and visualize embeddings
-    plt.figure(figsize=(15, 10))
+    fig = make_subplots(
+        rows=len(embedders), cols=1, subplot_titles=list(embedders.keys())
+    )
+
     for i, (name, embedder) in enumerate(embedders.items(), 1):
         try:
             # Generate embedding
@@ -79,12 +83,9 @@ def main():
             print(f"Std: {embedding.std():.3f}")
 
             # Plot embedding
-            plt.subplot(len(embedders), 1, i)
-            plt.plot(embedding)
-            plt.title(f"{name} Embedding")
-            plt.xlabel("Dimension")
-            plt.ylabel("Value")
-            plt.grid(True)
+            fig.add_trace(go.Scatter(y=embedding, mode="lines"), row=i, col=1)
+            fig.update_xaxes(title_text="Dimension", row=i, col=1)
+            fig.update_yaxes(title_text="Value", row=i, col=1)
 
             # Compare with another image
             if os.path.exists(image_path2):
@@ -93,8 +94,8 @@ def main():
         except Exception as e:
             print(f"\nError with {name} embedder: {e}")
 
-    plt.tight_layout()
-    plt.show()
+    fig.update_layout(height=800, showlegend=False)
+    fig.show()
 
 
 if __name__ == "__main__":

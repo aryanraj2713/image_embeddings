@@ -12,9 +12,12 @@ import glob
 import numpy as np
 from imgemb import ImageEmbedder
 from typing import List, Tuple, Dict
-import matplotlib.pyplot as plt
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import cv2
 from pathlib import Path
+import base64
+from io import BytesIO
 
 
 def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
@@ -107,28 +110,40 @@ def plot_similar_images(
         metric (str): Similarity metric used
     """
     n_images = len(similar_images) + 1
-    plt.figure(figsize=(15, 3))
+    fig = make_subplots(
+        rows=1,
+        cols=n_images,
+        subplot_titles=["Query Image"]
+        + [
+            f"Similarity: {score:.2f}"
+            if metric == "cosine"
+            else f"Distance: {-score:.2f}"
+            for path, score in similar_images
+        ],
+    )
+
+    # Helper function to convert OpenCV image to base64
+    def img_to_base64(img):
+        _, buffer = cv2.imencode(".png", img)
+        return base64.b64encode(buffer).decode()
 
     # Plot query image
-    plt.subplot(1, n_images, 1)
     query_img = cv2.cvtColor(cv2.imread(query_path), cv2.COLOR_BGR2RGB)
-    plt.imshow(query_img)
-    plt.title("Query Image")
-    plt.axis("off")
+    fig.add_trace(
+        go.Image(source=f"data:image/png;base64,{img_to_base64(query_img)}"),
+        row=1,
+        col=1,
+    )
 
     # Plot similar images
     for i, (path, score) in enumerate(similar_images, 2):
-        plt.subplot(1, n_images, i)
         img = cv2.cvtColor(cv2.imread(path), cv2.COLOR_BGR2RGB)
-        plt.imshow(img)
-        if metric == "cosine":
-            plt.title(f"Similarity: {score:.2f}")
-        else:
-            plt.title(f"Distance: {-score:.2f}")
-        plt.axis("off")
+        fig.add_trace(
+            go.Image(source=f"data:image/png;base64,{img_to_base64(img)}"), row=1, col=i
+        )
 
-    plt.tight_layout()
-    plt.show()
+    fig.update_layout(height=400, showlegend=False, margin=dict(l=20, r=20, t=40, b=20))
+    fig.show()
 
 
 def analyze_results(
