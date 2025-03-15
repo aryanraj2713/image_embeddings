@@ -1,11 +1,11 @@
 """
-Semantic search functionality using CLIP model.
+Semantic search functionality using OpenCLIP model.
 """
 
 import os
 from typing import List, Tuple, Optional
 import torch
-import clip
+import open_clip
 from PIL import Image
 import numpy as np
 from pathlib import Path
@@ -13,14 +13,14 @@ import sys
 
 
 class SemanticSearcher:
-    """Class for semantic image search using CLIP model."""
+    """Class for semantic image search using OpenCLIP model."""
 
-    def __init__(self, device: str = "cuda", model_name: str = "ViT-B/32"):
+    def __init__(self, device: str = "cuda", model_name: str = "ViT-B-32"):
         """Initialize the searcher.
 
         Args:
             device: Device to run the model on ('cuda' or 'cpu').
-            model_name: CLIP model variant to use.
+            model_name: OpenCLIP model variant to use.
         """
         # Set device based on availability
         if device == "cuda" and not torch.cuda.is_available():
@@ -28,8 +28,11 @@ class SemanticSearcher:
             device = "cpu"
         self.device = device
 
-        print(f"Loading CLIP model {model_name} on {self.device}...")
-        self.model, self.preprocess = clip.load(model_name, device=self.device)
+        print(f"Loading OpenCLIP model {model_name} on {self.device}...")
+        self.model, _, self.preprocess = open_clip.create_model_and_transforms(
+            model_name, pretrained="laion2b_s34b_b79k", device=self.device
+        )
+        self.tokenizer = open_clip.get_tokenizer(model_name)
         self._image_embeddings = None
         self._image_paths = []
 
@@ -64,7 +67,7 @@ class SemanticSearcher:
         Returns:
             Tensor containing the text embedding.
         """
-        text = clip.tokenize([text]).to(self.device)
+        text = self.tokenizer([text]).to(self.device)
         with torch.no_grad():
             text_features = self.model.encode_text(text)
             text_features = text_features / text_features.norm(dim=-1, keepdim=True)

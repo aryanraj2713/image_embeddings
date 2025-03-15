@@ -32,8 +32,8 @@ def test_images_dir(tmp_path):
 
 
 @pytest.fixture
-def mock_clip(monkeypatch):
-    """Mock CLIP model for testing."""
+def mock_open_clip(monkeypatch):
+    """Mock OpenCLIP model for testing."""
     # Create mock parameters with device property
     mock_param = MagicMock()
     mock_param.device.type = "cpu"
@@ -55,29 +55,40 @@ def mock_clip(monkeypatch):
     mock_preprocess = MagicMock()
     mock_preprocess.return_value = torch.randn(1, 3, 224, 224)
 
-    mock_load = MagicMock(return_value=(mock_model, mock_preprocess))
-    monkeypatch.setattr("clip.load", mock_load)
-    return mock_load
+    # Create mock tokenizer
+    mock_tokenizer = MagicMock()
+    mock_tokenizer.return_value = torch.randint(0, 1000, (1, 77))
+
+    # Mock create_model_and_transforms
+    mock_create = MagicMock(return_value=(mock_model, None, mock_preprocess))
+    monkeypatch.setattr("open_clip.create_model_and_transforms", mock_create)
+
+    # Mock get_tokenizer
+    mock_get_tokenizer = MagicMock(return_value=mock_tokenizer)
+    monkeypatch.setattr("open_clip.get_tokenizer", mock_get_tokenizer)
+
+    return mock_create
 
 
-def test_initialization(mock_clip):
+def test_initialization(mock_open_clip):
     """Test SemanticSearcher initialization."""
     # Test default initialization
     searcher = SemanticSearcher()
     assert searcher.device in ["cuda", "cpu"]
     assert searcher.model is not None
     assert searcher.preprocess is not None
+    assert searcher.tokenizer is not None
 
     # Test specific device
     searcher = SemanticSearcher(device="cpu")
     assert searcher.device == "cpu"
 
     # Test model variant
-    searcher = SemanticSearcher(model_name="ViT-B/32")
+    searcher = SemanticSearcher(model_name="ViT-B-32")
     assert searcher.model is not None
 
 
-def test_image_embedding(mock_clip, test_images_dir):
+def test_image_embedding(mock_open_clip, test_images_dir):
     """Test image embedding generation."""
     searcher = SemanticSearcher(device="cpu")
 
@@ -91,10 +102,10 @@ def test_image_embedding(mock_clip, test_images_dir):
     assert isinstance(embedding, torch.Tensor)
     assert embedding.dim() == 2  # Should be 2D tensor
     assert embedding.shape[0] == 1  # Batch size 1
-    assert embedding.shape[1] == 512  # CLIP feature dimension
+    assert embedding.shape[1] == 512  # Feature dimension
 
 
-def test_text_embedding(mock_clip):
+def test_text_embedding(mock_open_clip):
     """Test text embedding generation."""
     searcher = SemanticSearcher(device="cpu")
 
@@ -111,7 +122,7 @@ def test_text_embedding(mock_clip):
         assert embedding.shape[1] == 512
 
 
-def test_index_directory(mock_clip, test_images_dir):
+def test_index_directory(mock_open_clip, test_images_dir):
     """Test directory indexing."""
     searcher = SemanticSearcher(device="cpu")
 
@@ -133,7 +144,7 @@ def test_index_directory(mock_clip, test_images_dir):
     assert len(searcher._image_paths) == 0
 
 
-def test_search(mock_clip, test_images_dir):
+def test_search(mock_open_clip, test_images_dir):
     """Test image search functionality."""
     searcher = SemanticSearcher(device="cpu")
 
@@ -158,7 +169,7 @@ def test_search(mock_clip, test_images_dir):
         searcher.search("a red image")
 
 
-def test_error_handling(mock_clip, test_images_dir):
+def test_error_handling(mock_open_clip, test_images_dir):
     """Test error handling."""
     searcher = SemanticSearcher(device="cpu")
 
@@ -175,7 +186,7 @@ def test_error_handling(mock_clip, test_images_dir):
         searcher.search("test query")
 
 
-def test_device_handling(mock_clip):
+def test_device_handling(mock_open_clip):
     """Test device handling."""
     # Test CPU
     searcher = SemanticSearcher(device="cpu")
@@ -194,7 +205,7 @@ def test_device_handling(mock_clip):
         assert next(searcher.model.parameters()).device.type == "cuda"
 
 
-def test_search_with_threshold(mock_clip, test_images_dir):
+def test_search_with_threshold(mock_open_clip, test_images_dir):
     """Test search with different threshold values."""
     searcher = SemanticSearcher(device="cpu")
     searcher.index_directory(str(test_images_dir))
@@ -209,7 +220,7 @@ def test_search_with_threshold(mock_clip, test_images_dir):
     assert isinstance(results, list)
 
 
-def test_search_with_invalid_top_k(mock_clip, test_images_dir):
+def test_search_with_invalid_top_k(mock_open_clip, test_images_dir):
     """Test search with invalid top_k values."""
     searcher = SemanticSearcher(device="cpu")
     searcher.index_directory(str(test_images_dir))
@@ -223,7 +234,7 @@ def test_search_with_invalid_top_k(mock_clip, test_images_dir):
         searcher.search("test query", top_k=0)
 
 
-def test_index_directory_with_invalid_extensions(mock_clip, test_images_dir):
+def test_index_directory_with_invalid_extensions(mock_open_clip, test_images_dir):
     """Test indexing with invalid file extensions."""
     searcher = SemanticSearcher(device="cpu")
 
@@ -233,7 +244,7 @@ def test_index_directory_with_invalid_extensions(mock_clip, test_images_dir):
     assert searcher._image_paths == []
 
 
-def test_device_not_available(mock_clip):
+def test_device_not_available(mock_open_clip):
     """Test handling when requested device is not available."""
     # Mock torch.cuda.is_available to return False
     with patch("torch.cuda.is_available", return_value=False):
@@ -241,7 +252,7 @@ def test_device_not_available(mock_clip):
         assert searcher.device == "cpu"
 
 
-def test_main_function(mock_clip, test_images_dir):
+def test_main_function(mock_open_clip, test_images_dir):
     """Test the main function."""
     from image_embeddings.semantic_search import main
 
@@ -250,7 +261,7 @@ def test_main_function(mock_clip, test_images_dir):
         main()
 
 
-def test_batch_processing(mock_clip, test_images_dir):
+def test_batch_processing(mock_open_clip, test_images_dir):
     """Test processing multiple images in batches."""
     searcher = SemanticSearcher(device="cpu")
 
