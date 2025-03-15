@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "imgemb"
-version = "0.2.2"
+version = "0.2.3"
 description = "A lightweight Python library for generating image embeddings with semantic search"
 authors = [
     { name = "Aryan Raj", email = "aryanraj2713@gmail.com" }
@@ -27,9 +27,9 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Image Processing",
 ]
 dependencies = [
-    "opencv-python>=4.5.0",
+    "opencv-python-headless>=4.5.0",
     "numpy>=1.19.0",
-    "matplotlib>=3.3.0",
+    "plotly>=6.0.0",
     "scikit-learn>=0.24.0",
     "torch>=2.0.0",
     "torchvision>=0.15.0",
