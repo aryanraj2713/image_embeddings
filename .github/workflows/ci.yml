@@ -41,13 +41,13 @@ jobs:
         pytest tests/ -v --cov=image_embeddings --cov-report=html --cov-report=xml --html=test-report.html --self-contained-html
 
     - name: Upload coverage report
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: coverage-report-py${{ matrix.python-version }}
         path: htmlcov/
         
     - name: Upload test report
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: test-report-py${{ matrix.python-version }}
         path: test-report.html
