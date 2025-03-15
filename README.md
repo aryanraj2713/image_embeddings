@@ -1,4 +1,4 @@
-# Image Embeddings Library
+# Imgemb
 
 [![CI](https://github.com/aryanraj2713/image_embeddings/actions/workflows/ci.yml/badge.svg)](https://github.com/aryanraj2713/image_embeddings/actions/workflows/ci.yml)
 [pypi.org](https://pypi.org/project/imgemb/)
