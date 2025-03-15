@@ -115,9 +115,11 @@ def plot_similar_images(
         cols=n_images,
         subplot_titles=["Query Image"]
         + [
-            f"Similarity: {score:.2f}"
-            if metric == "cosine"
-            else f"Distance: {-score:.2f}"
+            (
+                f"Similarity: {score:.2f}"
+                if metric == "cosine"
+                else f"Distance: {-score:.2f}"
+            )
             for path, score in similar_images
         ],
     )
