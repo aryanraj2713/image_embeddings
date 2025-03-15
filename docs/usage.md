@@ -1,194 +1,229 @@
 # Usage Guide
 
-## Installation
+This guide covers the main features and usage patterns of the `imgemb` library.
 
-### From PyPI
+## Basic Usage
+
+### Installation
 
 ```bash
 pip install imgemb
 ```
 
-### From Source
-
-```bash
-git clone https://github.com/aryanraj2713/image_embeddings.git
-cd image_embeddings
-pip install -e ".[dev]"  # Install with development dependencies
-```
-
-## Basic Usage
-
-### 1. Generating Image Embeddings
+### Quick Start
 
 ```python
-from imgemb import ImageEmbedder
+from imgemb import ImageEmbedder, plot_similar_images
 
-# Initialize embedder with desired method
-embedder = ImageEmbedder(
-    method='grid',           # Choose from: 'average_color', 'grid', 'edge'
-    grid_size=(4, 4),       # For grid method
-    normalize=True,         # Normalize embeddings to unit length
-    color_space='rgb'      # Color space for feature extraction
-)
+# Initialize embedder
+embedder = ImageEmbedder(method="grid", grid_size=(4, 4))
 
-# Generate embedding for a single image
-embedding = embedder.embed_image('path/to/image.jpg')
-print(f"Embedding shape: {embedding.shape}")
-```
+# Generate embedding for an image
+embedding = embedder.embed_image("path/to/image.jpg")
 
-### 2. Comparing Images
-
-```python
-# Compare two images directly
-similarity = embedder.compare_images(
-    'image1.jpg',
-    'image2.jpg',
-    metric='cosine'  # or 'euclidean'
-)
-print(f"Similarity score: {similarity:.3f}")
-
-# Find similar images in a directory
+# Find similar images
 similar_images = embedder.find_similar_images(
-    'query.jpg',
-    'image/directory/',
-    top_k=5,
-    metric='cosine'
+    "query.jpg",
+    "images_directory/",
+    top_k=5
+)
+
+# Visualize results
+fig = plot_similar_images("query.jpg", similar_images)
+fig.show()
+```
+
+## Embedding Methods
+
+### 1. Average Color Method
+
+Simple but effective for color-based similarity.
+
+```python
+embedder = ImageEmbedder(method="average_color")
+embedding = embedder.embed_image("image.jpg")
+print(f"Embedding shape: {embedding.shape}")  # (3,) for RGB
+```
+
+### 2. Grid Method
+
+Divides image into grid cells and computes color statistics.
+
+```python
+embedder = ImageEmbedder(
+    method="grid",
+    grid_size=(4, 4),  # 4x4 grid
+    normalize=True,     # Normalize embeddings
+    color_space="hsv"  # Use HSV color space
+)
+embedding = embedder.embed_image("image.jpg")
+print(f"Embedding shape: {embedding.shape}")  # (48,) for 4x4 grid with RGB
+```
+
+### 3. Edge Method
+
+Extracts edge features using Sobel operators.
+
+```python
+embedder = ImageEmbedder(method="edge")
+embedding = embedder.embed_image("image.jpg")
+print(f"Embedding shape: {embedding.shape}")  # (32,) for edge histogram
+```
+
+## Finding Similar Images
+
+### Basic Similarity Search
+
+```python
+# Initialize embedder
+embedder = ImageEmbedder(method="grid")
+
+# Find similar images
+similar_images = embedder.find_similar_images(
+    "query.jpg",
+    "image_directory/",
+    top_k=5
 )
 
 # Print results
 for path, score in similar_images:
     print(f"{path}: {score:.3f}")
+
+# Visualize results
+fig = plot_similar_images(
+    "query.jpg",
+    similar_images,
+    title="Similar Images"
+)
+fig.show()
 ```
 
-## Advanced Usage
-
-### 1. Batch Processing
+### Semantic Search
 
 ```python
-import glob
-import numpy as np
+from imgemb import SemanticSearcher
 
-# Process multiple images
-image_paths = glob.glob('images/*.jpg')
-embeddings = []
+# Initialize searcher
+searcher = SemanticSearcher(device="cuda")  # Use GPU if available
 
-for path in image_paths:
-    embedding = embedder.embed_image(path)
-    embeddings.append(embedding)
+# Index directory
+searcher.index_directory("image_directory/")
 
-# Convert to numpy array for efficient processing
-embeddings = np.array(embeddings)
-```
+# Search with text query
+results = searcher.search(
+    "a photo of a dog",
+    top_k=5,
+    threshold=0.7  # Minimum similarity score
+)
 
-### 2. Image Clustering
-
-```python
-from sklearn.cluster import KMeans
-from sklearn.preprocessing import StandardScaler
-
-# Standardize features
-scaler = StandardScaler()
-scaled_embeddings = scaler.fit_transform(embeddings)
-
-# Perform clustering
-n_clusters = 5
-kmeans = KMeans(n_clusters=n_clusters, random_state=42)
-clusters = kmeans.fit_predict(scaled_embeddings)
-
-# Analyze clusters
-for cluster in range(n_clusters):
-    cluster_size = np.sum(clusters == cluster)
-    print(f"\nCluster {cluster}:")
-    print(f"Size: {cluster_size} images")
-```
-
-### 3. Custom Similarity Metrics
-
-```python
-def manhattan_distance(a: np.ndarray, b: np.ndarray) -> float:
-    """Custom similarity metric using Manhattan distance."""
-    return np.sum(np.abs(a - b))
-
-# Use custom metric for comparison
-def compare_custom(image1_path: str, image2_path: str) -> float:
-    emb1 = embedder.embed_image(image1_path)
-    emb2 = embedder.embed_image(image2_path)
-    return manhattan_distance(emb1, emb2)
+# Visualize results
+fig = plot_similar_images(
+    results[0][0],     # First result as query
+    results[1:],       # Remaining results
+    title="Semantic Search Results"
+)
+fig.show()
 ```
 
 ## Command Line Interface
 
-### 1. Compare Two Images
+### Generate Embeddings
 
 ```bash
-# Basic comparison
-imgemb compare image1.jpg image2.jpg
+# Generate embeddings for a single image
+imgemb generate input.jpg --output embeddings.json --method grid
 
-# Advanced options
-imgemb compare image1.jpg image2.jpg \
-    --method grid \
-    --grid-size 4 4 \
-    --metric cosine \
-    --normalize
+# Generate embeddings for a directory
+imgemb generate images/ --output embeddings.json --method edge
 ```
 
-### 2. Generate Embeddings
+### Compare Images
 
 ```bash
-# Generate embeddings for a directory of images
-imgemb generate images/ \
-    --output embeddings.json \
-    --method edge \
-    --normalize
+# Compare two images
+imgemb compare image1.jpg image2.jpg --method average_color
+
+# Compare with custom grid size
+imgemb compare image1.jpg image2.jpg --method grid --grid-size 8 8
 ```
 
-### 3. Find Similar Images
+### Find Similar Images
 
 ```bash
-# Find similar images with custom parameters
-imgemb find-similar query.jpg images/ \
-    -k 5 \
-    --method grid \
-    --grid-size 8 8 \
-    --metric cosine
+# Find similar images in a directory
+imgemb find-similar query.jpg images/ -k 5 --method grid
+
+# Find similar images with edge features
+imgemb find-similar query.jpg images/ -k 10 --method edge
+```
+
+### Semantic Search
+
+```bash
+# Search images using text query
+imgemb search "a red car" images/ -k 5
+
+# Search with similarity threshold
+imgemb search "landscape photo" images/ -k 10 --threshold 0.7
+```
+
+## Visualization
+
+### Plotting Similar Images
+
+```python
+from imgemb import plot_similar_images
+
+# Create visualization
+fig = plot_similar_images(
+    query_image_path="query.jpg",
+    similar_images=[
+        ("similar1.jpg", 0.95),
+        ("similar2.jpg", 0.85),
+        ("similar3.jpg", 0.75)
+    ],
+    title="Similar Images"
+)
+
+# Show interactive plot
+fig.show()
+
+# Save plot to HTML
+fig.write_html("similar_images.html")
 ```
 
 ## Best Practices
 
-1. **Choosing Embedding Methods:**
-   - `average_color`: Best for simple color-based similarity
-   - `grid`: Good balance between detail and efficiency
-   - `edge`: Best for structural similarity
+1. **Choose the Right Method**:
+   - `average_color`: Quick color-based comparison
+   - `grid`: Better spatial awareness
+   - `edge`: Focus on shape features
+   - Semantic search: Understanding image content
 
-2. **Performance Optimization:**
-   - Pre-compute embeddings for large datasets
-   - Use batch processing for multiple images
-   - Consider dimensionality reduction for large embeddings
+2. **Optimization Tips**:
+   - Use appropriate grid sizes (4x4 or 8x8 work well)
+   - Enable normalization for better comparisons
+   - Consider HSV color space for color-focused tasks
 
-3. **Memory Management:**
-   - Process images in batches for large datasets
-   - Clear unused embeddings from memory
-   - Use memory-mapped files for large datasets
+3. **Performance Considerations**:
+   - Index directories once and reuse embeddings
+   - Use GPU for semantic search when available
+   - Batch process images when possible
 
-4. **Error Handling:**
+4. **Visualization Tips**:
+   - Keep number of displayed images reasonable (5-10)
+   - Use descriptive titles
+   - Save interactive plots for sharing
+
+## Error Handling
+
 ```python
 try:
-    embedding = embedder.embed_image(image_path)
+    embedder = ImageEmbedder(method="grid")
+    embedding = embedder.embed_image("image.jpg")
+except ValueError as e:
+    print(f"Invalid configuration: {e}")
+except FileNotFoundError as e:
+    print(f"Image not found: {e}")
 except Exception as e:
-    print(f"Error processing {image_path}: {e}")
-    # Handle error appropriately
-```
-
-5. **Visualization Tips:**
-```python
-import matplotlib.pyplot as plt
-
-def visualize_embedding(embedding):
-    plt.figure(figsize=(10, 4))
-    plt.plot(embedding)
-    plt.title("Embedding Visualization")
-    plt.xlabel("Dimension")
-    plt.ylabel("Value")
-    plt.grid(True)
-    plt.show()
-``` 
+    print(f"Unexpected error: {e}") 

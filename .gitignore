@@ -19,7 +19,6 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-MANIFEST
 
 # Virtual Environment
 venv/
@@ -27,7 +26,6 @@ env/
 ENV/
 .env
 .venv
-.python-version
 
 # IDE
 .idea/
@@ -35,92 +33,49 @@ ENV/
 *.swp
 *.swo
 .DS_Store
-*.sublime-project
-*.sublime-workspace
-.project
-.pydevproject
-.settings/
-.vs/
-
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
-.tox/
-.nox/
-coverage.xml
-*.cover
-*.py,cover
-.hypothesis/
-.pytest_cache/
-cover/
 
 # Project specific
-*.jpg
-*.jpeg
-*.png
-*.gif
-*.bmp
-!tests/test_images/*.jpg
-!tests/test_images/*.png
-!examples/images/*.jpg
-!examples/images/*.png
+test_images/
+*.html
 embeddings.json
-output/
-temp/
-logs/
+*.jpg
+*.png
+*.jpeg
+!examples/test_images/*.jpg
+!examples/test_images/*.png
+!examples/test_images/*.jpeg
 
-# Jupyter Notebooks
+# Test coverage
+.coverage
+coverage.xml
+htmlcov/
+
+# Documentation
+_build/
+_static/
+_templates/
+
+# Jupyter Notebook
 .ipynb_checkpoints
 *.ipynb
 
 # Distribution / packaging
-*.tar.gz
-*.whl
-*.pyc
-*.pyo
-*.pyd
 .Python
-*.so
-*.dylib
-*.dll
-*.exe
-
-# Documentation
-docs/_build/
-docs/generated/
-_docs/
-site/
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 test_venv/
-# Environment
-.env
-.env.*
-!.env.example
-
-# Misc
-*.log
-*.sqlite
-*.db
-.DS_Store
-Thumbs.db
-.directory
-*.swp
-*.bak
-*~
-*.orig 
-*.ruff_cache
-*.coverage
-*.coverage.*
-*.coverage.*.*
-*.coverage.*.*.*
-*.coverage.*.*.*.*
-*.coverage.*.*.*.*.*
-*.coverage.*.*.*.*.*.*
-*.coverage.*.*.*.*.*.*.*
-coverage.xml
-test-report.html
-test-report.xml
-test-report.json
-test-report.json.*
-test-report.json.*.*
-test-report.json.*.*.*
+*.html

@@ -1,12 +1,12 @@
-"""Tests for the image_embeddings library."""
+"""Tests for the ImageEmbedder class."""
 
 import pytest
 import numpy as np
 import os
 from pathlib import Path
 import cv2
-from image_embeddings.embedder import ImageEmbedder
 import tempfile
+from imgemb.embedder import ImageEmbedder
 
 
 @pytest.fixture

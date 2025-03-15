@@ -1,6 +1,6 @@
 # API Reference
 
-## ImageEmbedder Class
+## ImageEmbedder
 
 The main class for generating and comparing image embeddings.
 
@@ -8,142 +8,199 @@ The main class for generating and comparing image embeddings.
 
 ```python
 ImageEmbedder(
-    method: str = 'grid',
+    method: str = "grid",
     grid_size: Tuple[int, int] = (4, 4),
     normalize: bool = True,
-    color_space: str = 'rgb'
+    color_space: str = "rgb"
 )
 ```
 
-#### Parameters
-
-- `method` (str): The embedding method to use. Options:
-  - `'average_color'`: Simple RGB color averaging
-  - `'grid'`: Grid-based color features
-  - `'edge'`: Edge-based features using Sobel
-- `grid_size` (tuple): Grid dimensions for the grid method (rows, cols)
-- `normalize` (bool): Whether to normalize embeddings to unit length
-- `color_space` (str): Color space to use ('rgb' or 'hsv')
+**Parameters:**
+- `method`: Embedding method to use. Options:
+  - `"average_color"`: Simple RGB/HSV color averaging
+  - `"grid"`: Grid-based color statistics
+  - `"edge"`: Edge-based features
+- `grid_size`: Tuple of (rows, cols) for grid method
+- `normalize`: Whether to normalize embeddings to unit length
+- `color_space`: Color space to use ("rgb" or "hsv")
 
 ### Methods
 
 #### embed_image
-
 ```python
-def embed_image(self, image_path: str) -> np.ndarray:
-    """Generate embedding for a single image."""
+embed_image(image_path: str) -> np.ndarray
 ```
+Generate embedding for a single image.
 
 **Parameters:**
-- `image_path` (str): Path to the image file
+- `image_path`: Path to the image file
 
 **Returns:**
-- `np.ndarray`: Image embedding vector
+- Numpy array containing the embedding
 
-**Example:**
+#### embed
 ```python
-embedder = ImageEmbedder(method='grid')
-embedding = embedder.embed_image('path/to/image.jpg')
-print(f"Embedding shape: {embedding.shape}")
+embed(image: np.ndarray) -> np.ndarray
 ```
+Generate embedding for an image array.
+
+**Parameters:**
+- `image`: Image as numpy array (HxWx3)
+
+**Returns:**
+- Numpy array containing the embedding
 
 #### compare_images
-
 ```python
-def compare_images(
-    self,
-    image1_path: str,
-    image2_path: str,
-    metric: str = 'cosine'
-) -> float:
-    """Compare similarity between two images."""
+compare_images(image1_path: str, image2_path: str) -> float
 ```
+Compare two images and return their similarity score.
 
 **Parameters:**
-- `image1_path` (str): Path to first image
-- `image2_path` (str): Path to second image
-- `metric` (str): Similarity metric ('cosine' or 'euclidean')
+- `image1_path`: Path to first image
+- `image2_path`: Path to second image
 
 **Returns:**
-- `float`: Similarity score (higher is more similar for cosine, lower for euclidean)
-
-**Example:**
-```python
-similarity = embedder.compare_images('image1.jpg', 'image2.jpg', metric='cosine')
-print(f"Similarity score: {similarity:.3f}")
-```
+- Similarity score between 0 and 1
 
 #### find_similar_images
+```python
+find_similar_images(
+    query_image: str,
+    image_dir: str,
+    top_k: int = 5
+) -> List[Tuple[str, float]]
+```
+Find similar images to a query image in a directory.
+
+**Parameters:**
+- `query_image`: Path to query image
+- `image_dir`: Directory containing images to search
+- `top_k`: Number of similar images to return
+
+**Returns:**
+- List of tuples (image_path, similarity_score)
+
+## SemanticSearcher
+
+Class for semantic image search using OpenCLIP.
+
+### Constructor
 
 ```python
-def find_similar_images(
-    self,
-    query_path: str,
-    image_dir: str,
-    top_k: int = 5,
-    metric: str = 'cosine'
-) -> List[Tuple[str, float]]:
-    """Find most similar images to a query image in a directory."""
+SemanticSearcher(
+    device: str = "cuda",
+    model_name: str = "ViT-B-32"
+)
 ```
 
 **Parameters:**
-- `query_path` (str): Path to query image
-- `image_dir` (str): Directory containing images to search
-- `top_k` (int): Number of similar images to return
-- `metric` (str): Similarity metric ('cosine' or 'euclidean')
+- `device`: Computing device ("cuda" or "cpu")
+- `model_name`: OpenCLIP model variant
+
+### Methods
+
+#### index_directory
+```python
+index_directory(
+    directory: str,
+    extensions: List[str] = None
+) -> None
+```
+Index all images in a directory.
+
+**Parameters:**
+- `directory`: Directory containing images
+- `extensions`: List of file extensions to include
+
+#### search
+```python
+search(
+    query: str,
+    top_k: int = 5,
+    threshold: float = 0.0
+) -> List[Tuple[str, float]]
+```
+Search for images matching a text query.
+
+**Parameters:**
+- `query`: Text query
+- `top_k`: Number of results to return
+- `threshold`: Minimum similarity score (0 to 1)
 
 **Returns:**
-- `List[Tuple[str, float]]`: List of (image_path, similarity_score) pairs
+- List of tuples (image_path, similarity_score)
+
+## Visualization
+
+Functions for visualizing embeddings and similar images.
+
+### plot_similar_images
+
+```python
+plot_similar_images(
+    query_image_path: str,
+    similar_images: List[Tuple[str, float]],
+    title: Optional[str] = None
+) -> plotly.graph_objects.Figure
+```
+
+Create an interactive visualization of query image and its similar matches.
+
+**Parameters:**
+- `query_image_path`: Path to the query image
+- `similar_images`: List of tuples (image_path, similarity_score)
+- `title`: Optional title for the plot
+
+**Returns:**
+- Plotly Figure object containing the visualization
 
 **Example:**
 ```python
-similar_images = embedder.find_similar_images(
-    'query.jpg',
-    'image/directory/',
-    top_k=5
-)
-for path, score in similar_images:
-    print(f"{path}: {score:.3f}")
+from imgemb import ImageEmbedder, plot_similar_images
+
+# Find similar images
+embedder = ImageEmbedder()
+similar_images = embedder.find_similar_images("query.jpg", "images/", top_k=5)
+
+# Create visualization
+fig = plot_similar_images("query.jpg", similar_images, title="Similar Images")
+fig.show()
 ```
 
 ## Command Line Interface
 
-### Compare Images
+The package provides a command-line interface for common operations.
+
+### Commands
+
+#### generate
+Generate embeddings for images.
 
 ```bash
-imgemb compare [OPTIONS] IMAGE1 IMAGE2
+imgemb generate <input> [--output OUTPUT] [--method METHOD] [--grid-size W H]
 ```
 
-**Options:**
-- `--method TEXT`: Embedding method [default: grid]
-- `--grid-size INT INT`: Grid dimensions [default: 4 4]
-- `--metric TEXT`: Similarity metric [default: cosine]
-- `--normalize`: Normalize embeddings [default: True]
-
-### Generate Embeddings
+#### compare
+Compare two images.
 
 ```bash
-imgemb generate [OPTIONS] INPUT_DIR
+imgemb compare <image1> <image2> [--method METHOD] [--grid-size W H]
 ```
 
-**Options:**
-- `--output TEXT`: Output JSON file [required]
-- `--method TEXT`: Embedding method [default: grid]
-- `--grid-size INT INT`: Grid dimensions [default: 4 4]
-- `--normalize`: Normalize embeddings [default: True]
-
-### Find Similar Images
+#### find-similar
+Find similar images in a directory.
 
 ```bash
-imgemb find-similar [OPTIONS] QUERY_IMAGE IMAGE_DIR
+imgemb find-similar <query> <directory> [-k TOP_K] [--method METHOD]
 ```
 
-**Options:**
-- `-k, --top-k INT`: Number of similar images [default: 5]
-- `--method TEXT`: Embedding method [default: grid]
-- `--grid-size INT INT`: Grid dimensions [default: 4 4]
-- `--metric TEXT`: Similarity metric [default: cosine]
-- `--normalize`: Normalize embeddings [default: True]
+#### search
+Perform semantic search using text query.
+
+```bash
+imgemb search <query> <directory> [-k TOP_K] [--threshold THRESHOLD]
+```
 
 ## BaseEmbedder
 

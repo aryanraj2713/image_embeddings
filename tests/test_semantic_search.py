@@ -1,4 +1,4 @@
-"""Tests for semantic search functionality."""
+"""Tests for the semantic search functionality."""
 
 import os
 import pytest
@@ -7,7 +7,7 @@ from PIL import Image
 import numpy as np
 from pathlib import Path
 from unittest.mock import patch, MagicMock
-from image_embeddings.semantic_search import SemanticSearcher
+from imgemb.semantic_search import SemanticSearcher
 
 
 @pytest.fixture
@@ -254,7 +254,7 @@ def test_device_not_available(mock_open_clip):
 
 def test_main_function(mock_open_clip, test_images_dir):
     """Test the main function."""
-    from image_embeddings.semantic_search import main
+    from imgemb.semantic_search import main
 
     # Create a temporary directory for testing
     with pytest.raises(SystemExit):

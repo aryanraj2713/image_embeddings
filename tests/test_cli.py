@@ -6,7 +6,7 @@ import os
 import json
 import tempfile
 from pathlib import Path
-from image_embeddings.cli.main import (
+from imgemb.cli.main import (
     generate_embeddings,
     find_similar,
     save_embeddings,
@@ -17,7 +17,7 @@ from image_embeddings.cli.main import (
 )
 import cv2
 import pickle
-from image_embeddings.embedder import ImageEmbedder
+from imgemb.embedder import ImageEmbedder
 
 
 @pytest.fixture

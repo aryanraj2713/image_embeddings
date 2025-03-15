@@ -1,4 +1,4 @@
-"""Command-line interface for image embeddings tools."""
+"""Command-line interface for imgemb package."""
 
 import argparse
 import sys
@@ -7,7 +7,7 @@ from typing import List, Optional
 import numpy as np
 import json
 import os
-from ..embedder import ImageEmbedder
+from imgemb import ImageEmbedder
 from ..semantic_search import SemanticSearcher
 
 

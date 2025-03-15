@@ -1,4 +1,4 @@
-"""Tests for visualization components."""
+"""Tests for visualization functions."""
 
 import pytest
 import numpy as np
@@ -8,10 +8,14 @@ import os
 import sys
 import base64
 import cv2
+import tempfile
+from pathlib import Path
+import json
+from imgemb import ImageEmbedder
+from imgemb.visualization import plot_similar_images
 
 # Add the parent directory to the Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from image_embeddings import ImageEmbedder
 
 
 def test_plot_embedding():
