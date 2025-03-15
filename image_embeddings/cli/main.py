@@ -97,35 +97,24 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Image embeddings and semantic search tool"
     )
-    
+
     subparsers = parser.add_subparsers(dest="command", help="Command to execute")
-    
+
     # Semantic search command
     search_parser = subparsers.add_parser(
-        "search",
-        help="Search for images using text queries"
+        "search", help="Search for images using text queries"
     )
     search_parser.add_argument(
-        "directory",
-        help="Directory containing images to search"
+        "directory", help="Directory containing images to search"
+    )
+    search_parser.add_argument("query", help="Text query (e.g., 'a photo of a dog')")
+    search_parser.add_argument(
+        "-k", "--top-k", type=int, default=5, help="Number of results to return"
     )
     search_parser.add_argument(
-        "query",
-        help="Text query (e.g., 'a photo of a dog')"
+        "--threshold", type=float, default=0.0, help="Minimum similarity score (0 to 1)"
     )
-    search_parser.add_argument(
-        "-k", "--top-k",
-        type=int,
-        default=5,
-        help="Number of results to return"
-    )
-    search_parser.add_argument(
-        "--threshold",
-        type=float,
-        default=0.0,
-        help="Minimum similarity score (0 to 1)"
-    )
-    
+
     # Compare command
     compare_parser = subparsers.add_parser(
         "compare", help="Compare two images for similarity"
@@ -206,23 +195,21 @@ def search_command(args: argparse.Namespace) -> None:
     try:
         # Initialize searcher
         searcher = SemanticSearcher()
-        
+
         # Index directory
         searcher.index_directory(args.directory)
-        
+
         # Perform search
         results = searcher.search(
-            args.query,
-            top_k=args.top_k,
-            threshold=args.threshold
+            args.query, top_k=args.top_k, threshold=args.threshold
         )
-        
+
         # Print results
         print("\nSearch Results:")
         print("-" * 50)
         for path, score in results:
             print(f"Score: {score:.3f} - {path}")
-            
+
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
