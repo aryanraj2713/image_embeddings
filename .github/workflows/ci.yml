@@ -25,7 +25,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -e ".[dev]"
-        pip install pytest-cov black flake8
+        pip install pytest-cov pytest-html black flake8
         
     - name: Check formatting with black
       run: |
@@ -38,7 +38,27 @@ jobs:
         
     - name: Run tests with coverage
       run: |
-        pytest tests/ -v --cov=image_embeddings
+        pytest tests/ -v --cov=image_embeddings --cov-report=html --cov-report=xml --html=test-report.html --self-contained-html
+
+    - name: Upload coverage report
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-report-py${{ matrix.python-version }}
+        path: htmlcov/
+        
+    - name: Upload test report
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-report-py${{ matrix.python-version }}
+        path: test-report.html
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
 
   build:
     needs: test

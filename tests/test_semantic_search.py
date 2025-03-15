@@ -38,10 +38,16 @@ def mock_clip():
     mock_param = MagicMock()
     mock_param.device.type = "cpu"
 
+    # Create consistent embeddings for testing
+    def get_consistent_embedding(batch_size=1):
+        # Create a normalized embedding
+        emb = torch.ones(batch_size, 512)
+        return emb / emb.norm(dim=-1, keepdim=True)
+
     # Create mock model
     mock_model = MagicMock()
-    mock_model.encode_image.return_value = torch.randn(1, 512)
-    mock_model.encode_text.return_value = torch.randn(1, 512)
+    mock_model.encode_image.return_value = get_consistent_embedding()
+    mock_model.encode_text.return_value = get_consistent_embedding()
     mock_model.parameters.return_value = iter([mock_param])
 
     # Create mock preprocess function
@@ -84,7 +90,7 @@ def test_image_embedding(mock_clip, test_images_dir):
     assert isinstance(embedding, torch.Tensor)
     assert embedding.dim() == 2  # Should be 2D tensor
     assert embedding.shape[0] == 1  # Batch size 1
-    assert embedding.shape[1] > 0  # Feature dimension
+    assert embedding.shape[1] == 512  # CLIP feature dimension
 
 
 def test_text_embedding(mock_clip):
@@ -101,7 +107,7 @@ def test_text_embedding(mock_clip):
         assert isinstance(embedding, torch.Tensor)
         assert embedding.dim() == 2
         assert embedding.shape[0] == 1
-        assert embedding.shape[1] > 0
+        assert embedding.shape[1] == 512
 
 
 def test_index_directory(mock_clip, test_images_dir):
@@ -137,9 +143,11 @@ def test_search(mock_clip, test_images_dir):
     assert len(results) == 2
     assert all(isinstance(r, tuple) and len(r) == 2 for r in results)
     assert all(isinstance(score, float) for _, score in results)
+    assert all(score >= 0.0 for _, score in results)  # Scores should be non-negative
 
     # Test with threshold
     results = searcher.search("a red image", top_k=2, threshold=0.5)
+    assert len(results) > 0  # Should return at least one result
     assert all(score >= 0.5 for _, score in results)
 
     # Test with empty index
