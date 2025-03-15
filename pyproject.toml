@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "imgemb"
-version = "0.2.5"
+version = "0.2.8"
 description = "A lightweight Python library for generating image embeddings with semantic search"
 authors = [
     {name = "Aryan Raj", email = "aryanraj2713@gmail.com"}
