@@ -39,7 +39,9 @@ def main():
     for query in queries:
         print(f"\nSearching for: {query}")
         results = searcher.search(
-            query, top_k=3, threshold=0.2  # Lower threshold for demonstration
+            query,
+            top_k=3,
+            threshold=0.2,  # Lower threshold for demonstration
         )
 
         if not results:
