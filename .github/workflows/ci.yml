@@ -40,7 +40,7 @@ jobs:
         
     - name: Run tests with coverage
       run: |
-        pytest tests/ -v --cov=image_embeddings --cov-report=html --cov-report=xml --html=test-report.html --self-contained-html
+        pytest tests/ -v --cov=imgemb --cov-report=html --cov-report=xml --html=test-report.html --self-contained-html
 
     - name: Upload coverage report
       uses: actions/upload-artifact@v4

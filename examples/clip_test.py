@@ -8,7 +8,7 @@ This script shows how to:
 """
 
 import os
-from image_embeddings import ImageEmbedder
+from imgemb import ImageEmbedder
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import cv2

@@ -67,7 +67,7 @@ pytest tests/ -v
 
 2. Check test coverage:
 ```bash
-pytest tests/ -v --cov=image_embeddings --cov-report=term-missing
+pytest tests/ -v --cov=imgemb --cov-report=term-missing
 ```
 
 3. Run linting:
