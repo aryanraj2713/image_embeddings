@@ -91,7 +91,7 @@ docs/_build/
 docs/generated/
 _docs/
 site/
-
+test_venv/
 # Environment
 .env
 .env.*
