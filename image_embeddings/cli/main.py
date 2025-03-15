@@ -7,6 +7,7 @@ from typing import List, Optional
 import numpy as np
 import json
 from ..embedder import ImageEmbedder
+from ..semantic_search import SemanticSearcher
 
 
 def save_embeddings(embeddings: List[np.ndarray], output_file: str) -> None:
@@ -91,14 +92,40 @@ def find_similar(
         print(f"{path}: {score:.4f}")
 
 
-def parse_args(args: List[str]) -> argparse.Namespace:
+def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
-        description="Image embeddings tool for comparing and finding similar images"
+        description="Image embeddings and semantic search tool"
     )
-
+    
     subparsers = parser.add_subparsers(dest="command", help="Command to execute")
-
+    
+    # Semantic search command
+    search_parser = subparsers.add_parser(
+        "search",
+        help="Search for images using text queries"
+    )
+    search_parser.add_argument(
+        "directory",
+        help="Directory containing images to search"
+    )
+    search_parser.add_argument(
+        "query",
+        help="Text query (e.g., 'a photo of a dog')"
+    )
+    search_parser.add_argument(
+        "-k", "--top-k",
+        type=int,
+        default=5,
+        help="Number of results to return"
+    )
+    search_parser.add_argument(
+        "--threshold",
+        type=float,
+        default=0.0,
+        help="Minimum similarity score (0 to 1)"
+    )
+    
     # Compare command
     compare_parser = subparsers.add_parser(
         "compare", help="Compare two images for similarity"
@@ -174,7 +201,34 @@ def parse_args(args: List[str]) -> argparse.Namespace:
     return parser.parse_args(args)
 
 
-def main(args: List[str] = None) -> int:
+def search_command(args: argparse.Namespace) -> None:
+    """Execute semantic search command."""
+    try:
+        # Initialize searcher
+        searcher = SemanticSearcher()
+        
+        # Index directory
+        searcher.index_directory(args.directory)
+        
+        # Perform search
+        results = searcher.search(
+            args.query,
+            top_k=args.top_k,
+            threshold=args.threshold
+        )
+        
+        # Print results
+        print("\nSearch Results:")
+        print("-" * 50)
+        for path, score in results:
+            print(f"Score: {score:.3f} - {path}")
+            
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+def main(args: Optional[List[str]] = None) -> int:
     """Main entry point for the CLI."""
     if args is None:
         args = sys.argv[1:]
@@ -230,6 +284,9 @@ def main(args: List[str] = None) -> int:
                 parsed_args.method,
                 tuple(parsed_args.grid_size),
             )
+
+        elif parsed_args.command == "search":
+            search_command(parsed_args)
 
     except Exception as e:
         print(f"Error: {e}")

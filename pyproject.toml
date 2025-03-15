@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "imgemb"
-version = "0.1.4"
-description = "A lightweight Python library for generating image embeddings"
+version = "0.1.5"
+description = "A lightweight Python library for generating image embeddings with semantic search"
 readme = "README.md"
 authors = [
-    {name = "Aryan Raj", email = "aryanraj@gmail.com"}
+    {name = "Aryan Raj", email = "aryanraj2713@gmail.com"}
 ]
 license = {text = "MIT"}
 requires-python = ">=3.8"
@@ -31,6 +31,10 @@ dependencies = [
     "numpy>=1.19.0",
     "matplotlib>=3.3.0",
     "scikit-learn>=0.24.0",
+    "torch>=2.0.0",
+    "torchvision>=0.15.0",
+    "clip @ git+https://github.com/openai/CLIP.git",
+    "Pillow>=9.0.0",
 ]
 
 [project.optional-dependencies]

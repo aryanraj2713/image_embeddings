@@ -11,10 +11,16 @@ A lightweight Python library for generating and comparing image embeddings using
   - **Average Color**: Simple RGB color averaging
   - **Grid-based**: Divides image into grid cells and computes color features
   - **Edge-based**: Uses Sobel edge detection and histogram features
+  - **CLIP-based**: Semantic embeddings for natural language search
 - Command-line interface (CLI) for easy usage
 - Normalization options for embeddings
 - Tools for finding similar images in a directory
 - Support for batch processing
+- **Semantic Search**:
+  - Natural language queries for image search
+  - Zero-shot image classification
+  - Cross-modal understanding between text and images
+  - GPU acceleration support
 
 ## Installation
 
@@ -58,6 +64,25 @@ similar_images = embedder.find_similar_images(
     'path/to/image/directory',
     top_k=5
 )
+```
+
+### Semantic Search
+
+```python
+from imgemb import SemanticSearcher
+
+# Initialize searcher
+searcher = SemanticSearcher()
+
+# Index a directory of images
+searcher.index_directory("path/to/images")
+
+# Search using natural language
+results = searcher.search("a photo of a dog playing in the park", top_k=5)
+
+# Print results
+for path, score in results:
+    print(f"{path}: {score:.3f}")
 ```
 
 ### Using the Command Line Interface
