@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import cv2
 from image_embeddings.embedder import ImageEmbedder
+import tempfile
 
 
 @pytest.fixture
@@ -262,3 +263,79 @@ def test_normalization(test_images):
     embedder = ImageEmbedder(normalize=False)
     embedding = embedder.embed_image(img_path)
     assert np.linalg.norm(embedding) != 1.0
+
+
+def test_find_similar_images_empty_directory(tmp_path):
+    """Test find_similar_images with empty directory."""
+    embedder = ImageEmbedder()
+    empty_dir = tmp_path / "empty"
+    empty_dir.mkdir()
+
+    # Create a query image
+    query_img = np.random.randint(0, 255, (100, 100, 3), dtype=np.uint8)
+    query_path = tmp_path / "query.jpg"
+    cv2.imwrite(str(query_path), query_img)
+
+    results = embedder.find_similar_images(str(query_path), str(empty_dir))
+    assert len(results) == 0
+
+
+def test_compare_images_same_image(tmp_path):
+    """Test comparing an image with itself."""
+    embedder = ImageEmbedder()
+
+    # Create a test image
+    img = np.random.randint(0, 255, (100, 100, 3), dtype=np.uint8)
+    img_path = tmp_path / "test.jpg"
+    cv2.imwrite(str(img_path), img)
+
+    similarity = embedder.compare_images(str(img_path), str(img_path))
+    assert similarity == pytest.approx(1.0)
+
+
+def test_edge_embedder_empty_image(tmp_path):
+    """Test edge embedder with an empty (black) image."""
+    embedder = ImageEmbedder(method="edge")
+
+    # Create a black image
+    img = np.zeros((100, 100, 3), dtype=np.uint8)
+    img_path = tmp_path / "black.jpg"
+    cv2.imwrite(str(img_path), img)
+
+    embedding = embedder.embed_image(str(img_path))
+    assert embedding is not None
+    assert not np.isnan(embedding).any()
+
+
+def test_grid_embedder_single_cell():
+    """Test grid embedder with 1x1 grid."""
+    embedder = ImageEmbedder(method="grid", grid_size=(1, 1))
+    img = np.ones((100, 100, 3), dtype=np.uint8) * 128
+
+    with tempfile.NamedTemporaryFile(suffix=".jpg") as tmp:
+        cv2.imwrite(tmp.name, img)
+        embedding = embedder.embed_image(tmp.name)
+        assert embedding.shape == (3,)  # RGB values for single cell
+        # Values should be normalized to [0, 1] range
+        expected = np.array([0.5, 0.5, 0.5])  # 128/255 ≈ 0.5
+        # Use more lenient tolerance to account for JPEG compression
+        np.testing.assert_allclose(embedding, expected, rtol=1e-2)
+
+
+def test_embedder_color_spaces():
+    """Test embedder with different color spaces."""
+    img = np.ones((100, 100, 3), dtype=np.uint8) * 128
+
+    with tempfile.NamedTemporaryFile(suffix=".jpg") as tmp:
+        cv2.imwrite(tmp.name, img)
+
+        # Test RGB
+        embedder_rgb = ImageEmbedder(color_space="rgb")
+        emb_rgb = embedder_rgb.embed_image(tmp.name)
+
+        # Test HSV
+        embedder_hsv = ImageEmbedder(color_space="hsv")
+        emb_hsv = embedder_hsv.embed_image(tmp.name)
+
+        assert emb_rgb.shape == emb_hsv.shape
+        assert not np.array_equal(emb_rgb, emb_hsv)

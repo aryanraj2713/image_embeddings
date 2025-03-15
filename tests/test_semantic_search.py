@@ -32,8 +32,8 @@ def test_images_dir(tmp_path):
 
 
 @pytest.fixture
-def mock_clip():
-    """Mock CLIP model and preprocessing."""
+def mock_clip(monkeypatch):
+    """Mock CLIP model for testing."""
     # Create mock parameters with device property
     mock_param = MagicMock()
     mock_param.device.type = "cpu"
@@ -49,14 +49,15 @@ def mock_clip():
     mock_model.encode_image.return_value = get_consistent_embedding()
     mock_model.encode_text.return_value = get_consistent_embedding()
     mock_model.parameters.return_value = iter([mock_param])
+    mock_model.to.return_value = mock_model
 
     # Create mock preprocess function
     mock_preprocess = MagicMock()
     mock_preprocess.return_value = torch.randn(1, 3, 224, 224)
 
-    with patch("clip.load") as mock_load:
-        mock_load.return_value = (mock_model, mock_preprocess)
-        yield mock_load
+    mock_load = MagicMock(return_value=(mock_model, mock_preprocess))
+    monkeypatch.setattr("clip.load", mock_load)
+    return mock_load
 
 
 def test_initialization(mock_clip):
@@ -127,8 +128,9 @@ def test_index_directory(mock_clip, test_images_dir):
     assert len(searcher._image_embeddings) == num_images
 
     # Test with non-existent extension
+    searcher = SemanticSearcher(device="cpu")  # Create new instance
     searcher.index_directory(str(test_images_dir), extensions=[".xyz"])
-    assert len(searcher._image_embeddings) == 0
+    assert len(searcher._image_paths) == 0
 
 
 def test_search(mock_clip, test_images_dir):
@@ -190,3 +192,73 @@ def test_device_handling(mock_clip):
         searcher = SemanticSearcher(device="cuda")
         assert searcher.device == "cuda"
         assert next(searcher.model.parameters()).device.type == "cuda"
+
+
+def test_search_with_threshold(mock_clip, test_images_dir):
+    """Test search with different threshold values."""
+    searcher = SemanticSearcher(device="cpu")
+    searcher.index_directory(str(test_images_dir))
+
+    # Test with high threshold (should return no results)
+    with pytest.raises(ValueError) as exc_info:
+        searcher.search("test query", threshold=1.1)
+    assert "threshold must be between 0.0 and 1.0" in str(exc_info.value)
+
+    # Test with valid threshold
+    results = searcher.search("test query", threshold=0.5)
+    assert isinstance(results, list)
+
+
+def test_search_with_invalid_top_k(mock_clip, test_images_dir):
+    """Test search with invalid top_k values."""
+    searcher = SemanticSearcher(device="cpu")
+    searcher.index_directory(str(test_images_dir))
+
+    # Test with negative top_k
+    with pytest.raises(ValueError):
+        searcher.search("test query", top_k=-1)
+
+    # Test with zero top_k
+    with pytest.raises(ValueError):
+        searcher.search("test query", top_k=0)
+
+
+def test_index_directory_with_invalid_extensions(mock_clip, test_images_dir):
+    """Test indexing with invalid file extensions."""
+    searcher = SemanticSearcher(device="cpu")
+
+    # Test with non-image extensions
+    searcher.index_directory(str(test_images_dir), extensions=[".txt", ".doc"])
+    assert searcher._image_embeddings is None
+    assert searcher._image_paths == []
+
+
+def test_device_not_available(mock_clip):
+    """Test handling when requested device is not available."""
+    # Mock torch.cuda.is_available to return False
+    with patch("torch.cuda.is_available", return_value=False):
+        searcher = SemanticSearcher(device="cuda")
+        assert searcher.device == "cpu"
+
+
+def test_main_function(mock_clip, test_images_dir):
+    """Test the main function."""
+    from image_embeddings.semantic_search import main
+
+    # Create a temporary directory for testing
+    with pytest.raises(SystemExit):
+        main()
+
+
+def test_batch_processing(mock_clip, test_images_dir):
+    """Test processing multiple images in batches."""
+    searcher = SemanticSearcher(device="cpu")
+
+    # Index directory
+    searcher.index_directory(str(test_images_dir))
+
+    # Test multiple queries at once
+    queries = ["red image", "green image", "blue image"]
+    for query in queries:
+        results = searcher.search(query, top_k=1)
+        assert len(results) == 1

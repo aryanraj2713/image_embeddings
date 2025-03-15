@@ -6,16 +6,23 @@ from pathlib import Path
 from typing import List, Optional
 import numpy as np
 import json
+import os
 from ..embedder import ImageEmbedder
 from ..semantic_search import SemanticSearcher
 
 
 def save_embeddings(embeddings: List[np.ndarray], output_file: str) -> None:
     """Save embeddings to a JSON file."""
-    # Convert embeddings to list for JSON serialization
-    embeddings_list = [emb.tolist() for emb in embeddings]
-    with open(output_file, "w") as f:
-        json.dump(embeddings_list, f)
+    try:
+        # Create directory if it doesn't exist
+        os.makedirs(os.path.dirname(output_file), exist_ok=True)
+
+        # Convert embeddings to list for JSON serialization
+        embeddings_list = [emb.tolist() for emb in embeddings]
+        with open(output_file, "w") as f:
+            json.dump(embeddings_list, f)
+    except Exception as e:
+        raise ValueError(f"Failed to save embeddings: {e}")
 
 
 def load_embeddings(input_file: str) -> List[np.ndarray]:
@@ -92,40 +99,22 @@ def find_similar(
         print(f"{path}: {score:.4f}")
 
 
-def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
+def parse_args(args=None) -> argparse.Namespace:
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
         description="Image embeddings and semantic search tool"
     )
-
     subparsers = parser.add_subparsers(dest="command", help="Command to execute")
 
-    # Semantic search command
-    search_parser = subparsers.add_parser(
-        "search", help="Search for images using text queries"
-    )
-    search_parser.add_argument(
-        "directory", help="Directory containing images to search"
-    )
-    search_parser.add_argument("query", help="Text query (e.g., 'a photo of a dog')")
-    search_parser.add_argument(
-        "-k", "--top-k", type=int, default=5, help="Number of results to return"
-    )
-    search_parser.add_argument(
-        "--threshold", type=float, default=0.0, help="Minimum similarity score (0 to 1)"
-    )
-
     # Compare command
-    compare_parser = subparsers.add_parser(
-        "compare", help="Compare two images for similarity"
-    )
-    compare_parser.add_argument("image1", help="Path to first image")
-    compare_parser.add_argument("image2", help="Path to second image")
+    compare_parser = subparsers.add_parser("compare", help="Compare two images")
+    compare_parser.add_argument("image1", help="First image path")
+    compare_parser.add_argument("image2", help="Second image path")
     compare_parser.add_argument(
         "--method",
-        choices=ImageEmbedder.VALID_METHODS,
+        choices=["average_color", "grid", "edge"],
         default="grid",
-        help="Embedding method to use",
+        help="Embedding method",
     )
     compare_parser.add_argument(
         "--grid-size",
@@ -135,17 +124,17 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
         help="Grid size for grid method (height width)",
     )
 
-    # Generate embeddings command
+    # Generate command
     generate_parser = subparsers.add_parser(
         "generate", help="Generate embeddings for images"
     )
-    generate_parser.add_argument("input", help="Input image or directory")
-    generate_parser.add_argument("--output", help="Output JSON file to save embeddings")
+    generate_parser.add_argument("input", help="Input image or directory path")
+    generate_parser.add_argument("--output", help="Output path for embeddings")
     generate_parser.add_argument(
         "--method",
-        choices=ImageEmbedder.VALID_METHODS,
+        choices=["average_color", "grid", "edge"],
         default="grid",
-        help="Embedding method to use",
+        help="Embedding method",
     )
     generate_parser.add_argument(
         "--grid-size",
@@ -159,27 +148,21 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
     )
 
     # Find similar command
-    similar_parser = subparsers.add_parser(
-        "find-similar", help="Find similar images in a directory"
+    find_similar_parser = subparsers.add_parser(
+        "find-similar", help="Find similar images"
     )
-    similar_parser.add_argument("query_image", help="Path to query image")
-    similar_parser.add_argument(
-        "image_dir", help="Directory containing images to search"
+    find_similar_parser.add_argument("query_image", help="Query image path")
+    find_similar_parser.add_argument("image_dir", help="Directory containing images")
+    find_similar_parser.add_argument(
+        "-k", "--top-k", type=int, default=5, help="Number of similar images to return"
     )
-    similar_parser.add_argument(
-        "-k",
-        "--top-k",
-        type=int,
-        default=5,
-        help="Number of similar images to return (default: 5)",
-    )
-    similar_parser.add_argument(
+    find_similar_parser.add_argument(
         "--method",
-        choices=ImageEmbedder.VALID_METHODS,
+        choices=["average_color", "grid", "edge"],
         default="grid",
-        help="Embedding method to use",
+        help="Embedding method",
     )
-    similar_parser.add_argument(
+    find_similar_parser.add_argument(
         "--grid-size",
         nargs=2,
         type=int,
@@ -187,14 +170,140 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
         help="Grid size for grid method (height width)",
     )
 
+    # Search command
+    search_parser = subparsers.add_parser(
+        "search", help="Search images using text query"
+    )
+    search_parser.add_argument("query", help="Text query")
+    search_parser.add_argument("directory", help="Directory containing images")
+    search_parser.add_argument(
+        "-k", "--top-k", type=int, default=5, help="Number of results to return"
+    )
+    search_parser.add_argument(
+        "--threshold",
+        type=float,
+        default=0.0,
+        help="Minimum similarity score threshold",
+    )
+
     return parser.parse_args(args)
 
 
-def search_command(args: argparse.Namespace) -> None:
+def compare_command(args: argparse.Namespace) -> int:
+    """Execute compare command."""
+    try:
+        # Validate paths
+        if not Path(args.image1).exists():
+            print(f"Error: Image not found: {args.image1}", file=sys.stderr)
+            return 1
+        if not Path(args.image2).exists():
+            print(f"Error: Image not found: {args.image2}", file=sys.stderr)
+            return 1
+
+        # Initialize embedder
+        embedder = ImageEmbedder(
+            method=args.method, grid_size=tuple(map(int, args.grid_size))
+        )
+
+        # Compare images
+        similarity = embedder.compare_images(args.image1, args.image2)
+        print(f"Similarity score: {similarity:.4f}")
+        return 0
+
+    except Exception as e:
+        print(f"Error: {str(e)}", file=sys.stderr)
+        return 1
+
+
+def generate_command(args: argparse.Namespace) -> int:
+    """Execute generate command."""
+    try:
+        # Validate paths
+        input_path = Path(args.input)
+        if not input_path.exists():
+            print(f"Error: Input path not found: {args.input}", file=sys.stderr)
+            return 1
+
+        # Initialize embedder
+        embedder = ImageEmbedder(
+            method=args.method, grid_size=tuple(map(int, args.grid_size))
+        )
+
+        # Generate embeddings
+        if input_path.is_file():
+            embedding = embedder.embed_image(str(input_path))
+            print(f"Generated embedding shape: {embedding.shape}")
+            if args.output:
+                np.save(args.output, embedding)
+                print(f"Saved embedding to {args.output}")
+        else:
+            embeddings = []
+            for img_path in input_path.glob("**/*.jpg"):
+                try:
+                    embedding = embedder.embed_image(str(img_path))
+                    embeddings.append(embedding)
+                except Exception as e:
+                    print(f"Error processing {img_path}: {e}", file=sys.stderr)
+
+            if embeddings:
+                embeddings = np.array(embeddings)
+                print(f"Generated {len(embeddings)} embeddings")
+                if args.output:
+                    np.save(args.output, embeddings)
+                    print(f"Saved embeddings to {args.output}")
+            else:
+                print("No images processed successfully.")
+
+        return 0
+
+    except Exception as e:
+        print(f"Error: {str(e)}", file=sys.stderr)
+        return 1
+
+
+def find_similar_command(args: argparse.Namespace) -> int:
+    """Execute find-similar command."""
+    try:
+        # Validate paths
+        if not Path(args.query_image).exists():
+            print(f"Error: Query image not found: {args.query_image}", file=sys.stderr)
+            return 1
+        if not Path(args.image_dir).exists():
+            print(f"Error: Directory not found: {args.image_dir}", file=sys.stderr)
+            return 1
+
+        # Initialize embedder
+        embedder = ImageEmbedder(
+            method=args.method, grid_size=tuple(map(int, args.grid_size))
+        )
+
+        # Find similar images
+        similar_images = embedder.find_similar_images(
+            args.query_image, args.image_dir, top_k=args.top_k
+        )
+
+        # Print results
+        print("\nTop similar images:")
+        for path, score in similar_images:
+            print(f"{path}: {score:.4f}")
+
+        return 0
+
+    except Exception as e:
+        print(f"Error: {str(e)}", file=sys.stderr)
+        return 1
+
+
+def search_command(args: argparse.Namespace) -> int:
     """Execute semantic search command."""
     try:
+        # Validate directory
+        if not Path(args.directory).exists():
+            print(f"Error: Directory not found: {args.directory}", file=sys.stderr)
+            return 1
+
         # Initialize searcher
-        searcher = SemanticSearcher()
+        searcher = SemanticSearcher(device="cpu")  # Default to CPU for stability
 
         # Index directory
         searcher.index_directory(args.directory)
@@ -210,76 +319,37 @@ def search_command(args: argparse.Namespace) -> None:
         for path, score in results:
             print(f"Score: {score:.3f} - {path}")
 
+        return 0
+
+    except FileNotFoundError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
-        sys.exit(1)
-
-
-def main(args: Optional[List[str]] = None) -> int:
-    """Main entry point for the CLI."""
-    if args is None:
-        args = sys.argv[1:]
-
-    parsed_args = parse_args(args)
-
-    if not parsed_args.command:
-        print("Error: No command specified. Use --help for usage information.")
         return 1
 
+
+def main(args=None) -> int:
+    """Main entry point."""
     try:
+        parsed_args = parse_args(args)
+
+        # Execute appropriate command
         if parsed_args.command == "compare":
-            # Validate paths
-            if not Path(parsed_args.image1).exists():
-                print(f"Error: Image not found: {parsed_args.image1}")
-                return 1
-            if not Path(parsed_args.image2).exists():
-                print(f"Error: Image not found: {parsed_args.image2}")
-                return 1
-
-            # Compare images
-            embedder = ImageEmbedder(
-                method=parsed_args.method, grid_size=tuple(parsed_args.grid_size)
-            )
-            similarity = embedder.compare_images(parsed_args.image1, parsed_args.image2)
-            print(f"Similarity score: {similarity:.4f}")
-
+            return compare_command(parsed_args)
         elif parsed_args.command == "generate":
-            # Generate embeddings
-            embeddings = generate_embeddings(
-                parsed_args.input,
-                parsed_args.output,
-                parsed_args.method,
-                tuple(parsed_args.grid_size),
-                not parsed_args.no_normalize,
-            )
-            print(f"Generated {len(embeddings)} embeddings")
-
+            return generate_command(parsed_args)
         elif parsed_args.command == "find-similar":
-            # Validate paths
-            if not Path(parsed_args.query_image).exists():
-                print(f"Error: Query image not found: {parsed_args.query_image}")
-                return 1
-            if not Path(parsed_args.image_dir).is_dir():
-                print(f"Error: Directory not found: {parsed_args.image_dir}")
-                return 1
-
-            # Find similar images
-            find_similar(
-                parsed_args.query_image,
-                parsed_args.image_dir,
-                parsed_args.top_k,
-                parsed_args.method,
-                tuple(parsed_args.grid_size),
-            )
-
+            return find_similar_command(parsed_args)
         elif parsed_args.command == "search":
-            search_command(parsed_args)
+            return search_command(parsed_args)
+        else:
+            print(f"Error: Unknown command: {parsed_args.command}", file=sys.stderr)
+            return 1
 
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Error: {e}", file=sys.stderr)
         return 1
-
-    return 0
 
 
 if __name__ == "__main__":

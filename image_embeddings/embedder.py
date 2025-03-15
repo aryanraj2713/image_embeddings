@@ -2,6 +2,8 @@ import cv2
 import numpy as np
 from typing import Union, List, Tuple
 import os
+import glob
+import sys
 
 
 class ImageEmbedder:
@@ -15,6 +17,7 @@ class ImageEmbedder:
         method: str = "grid",
         grid_size: Tuple[int, int] = (4, 4),
         normalize: bool = True,
+        color_space: str = "rgb",
     ):
         """Initialize the ImageEmbedder.
 
@@ -23,6 +26,7 @@ class ImageEmbedder:
             method: Embedding method ('average_color', 'grid', or 'edge')
             grid_size: Grid size for grid-based embedding
             normalize: Whether to normalize embeddings
+            color_space: Color space to use ('rgb' or 'hsv')
         """
         if method not in self.VALID_METHODS:
             raise ValueError(
@@ -36,6 +40,9 @@ class ImageEmbedder:
         self.method = method
         self.grid_size = grid_size
         self.normalize = normalize
+        self.color_space = color_space.lower()
+        if self.color_space not in ["rgb", "hsv"]:
+            raise ValueError("Color space must be 'rgb' or 'hsv'")
 
     def preprocess_image(self, image_path: str) -> np.ndarray:
         """Preprocess an image by loading and resizing it.
@@ -73,20 +80,10 @@ class ImageEmbedder:
         if self.method == "average_color":
             embedding = np.mean(img, axis=(0, 1))
         elif self.method == "grid":
-            # Split image into grid cells and compute average color for each cell
-            h, w = img.shape[:2]
-            gh, gw = self.grid_size
-            cell_h, cell_w = h // gh, w // gw
-
-            embedding = []
-            for i in range(gh):
-                for j in range(gw):
-                    cell = img[
-                        i * cell_h : (i + 1) * cell_h, j * cell_w : (j + 1) * cell_w
-                    ]
-                    cell_avg = np.mean(cell, axis=(0, 1))
-                    embedding.extend(cell_avg)
-            embedding = np.array(embedding)
+            embedding = self._grid_embedder(img)
+            # Skip normalization for 1x1 grid as it's already handled in _grid_embedder
+            if self.grid_size == (1, 1):
+                return embedding
         else:  # edge method
             # Compute edge features using Sobel operator
             gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
@@ -104,68 +101,135 @@ class ImageEmbedder:
         """Alias for embed_image for backward compatibility."""
         return self.embed_image(image_path)
 
-    def compare_images(self, image_path1: str, image_path2: str) -> float:
-        """Compare two images by computing the cosine similarity of their embeddings.
+    def compare_images(self, image1_path: str, image2_path: str) -> float:
+        """Compare two images and return similarity score.
 
         Args:
-            image_path1: Path to first image
-            image_path2: Path to second image
+            image1_path (str): Path to first image
+            image2_path (str): Path to second image
 
         Returns:
-            Cosine similarity score between 0 and 1
+            float: Similarity score between 0 and 1
         """
-        # Generate embeddings
-        embedding1 = self.embed_image(image_path1)
-        embedding2 = self.embed_image(image_path2)
+        # Get embeddings
+        emb1 = self.embed_image(image1_path)
+        emb2 = self.embed_image(image2_path)
 
-        # Compute cosine similarity
-        similarity = np.dot(embedding1, embedding2)
-        if self.normalize:
-            similarity = (similarity + 1) / 2  # Scale to [0, 1]
+        # Normalize embeddings
+        emb1_norm = emb1 / np.linalg.norm(emb1)
+        emb2_norm = emb2 / np.linalg.norm(emb2)
 
-        return similarity
+        # Calculate cosine similarity
+        similarity = np.dot(emb1_norm, emb2_norm)
+
+        # Ensure similarity is between 0 and 1
+        return float(np.clip(similarity, 0.0, 1.0))
 
     def find_similar_images(
         self, query_image: str, image_dir: str, top_k: int = 5
     ) -> List[Tuple[str, float]]:
-        """Find the most similar images to a query image in a directory.
+        """Find similar images to a query image in a directory.
 
         Args:
-            query_image: Path to the query image
-            image_dir: Directory containing images to search through
+            query_image: Path to query image
+            image_dir: Directory containing images to search
             top_k: Number of similar images to return
 
         Returns:
-            List of (image_path, similarity_score) tuples for the top_k most similar images
+            List of tuples containing (image_path, similarity_score)
+
+        Raises:
+            FileNotFoundError: If query image or directory does not exist
+            ValueError: If no valid images found in directory or top_k is invalid
         """
-        # Check if directory exists
+        # Validate inputs
+        if top_k < 1:
+            raise ValueError("top_k must be at least 1")
+
+        # Validate paths
+        if not os.path.exists(query_image):
+            raise FileNotFoundError(f"Query image not found: {query_image}")
         if not os.path.exists(image_dir):
-            raise ValueError(f"Directory does not exist: {image_dir}")
+            raise FileNotFoundError(f"Directory not found: {image_dir}")
 
-        # Generate query embedding
-        query_embedding = self.embed_image(query_image)
+        # Get query embedding
+        query_emb = self.embed_image(query_image)
 
-        # Get all images in directory
-        image_files = [
-            f
-            for f in os.listdir(image_dir)
-            if f.lower().endswith((".png", ".jpg", ".jpeg"))
-        ]
+        # Find all images in directory
+        image_paths = []
+        for ext in [".jpg", ".jpeg", ".png"]:
+            image_paths.extend(glob.glob(os.path.join(image_dir, f"*{ext}")))
 
-        # Compare with all images
-        similarities = []
-        for image_file in image_files:
-            image_path = os.path.join(image_dir, image_file)
+        if not image_paths:
+            return []  # Return empty list for empty directory
+
+        # Get embeddings for all images
+        embeddings = []
+        for path in image_paths:
             try:
-                embedding = self.embed_image(image_path)
-                similarity = np.dot(query_embedding, embedding)
-                if self.normalize:
-                    similarity = (similarity + 1) / 2  # Scale to [0, 1]
-                similarities.append((image_path, float(similarity)))
+                emb = self.embed_image(path)
+                embeddings.append(emb)
             except Exception as e:
-                print(f"Error processing {image_path}: {e}")
-                continue
+                print(f"Warning: Could not process {path}: {e}", file=sys.stderr)
 
-        # Sort by similarity and return top_k
+        if not embeddings:
+            return []  # Return empty list if no images could be processed
+
+        # Convert to numpy arrays
+        embeddings = np.array(embeddings)
+
+        # Compute similarities
+        similarities = []
+        for i, emb in enumerate(embeddings):
+            sim = np.dot(query_emb, emb) / (
+                np.linalg.norm(query_emb) * np.linalg.norm(emb)
+            )
+            similarities.append((image_paths[i], float(sim)))
+
+        # Sort by similarity and return top k
         similarities.sort(key=lambda x: x[1], reverse=True)
         return similarities[:top_k]
+
+    def _grid_embedder(self, img: np.ndarray) -> np.ndarray:
+        """Generate embedding by dividing image into grid cells and computing mean color.
+
+        Args:
+            img: Input image as numpy array
+
+        Returns:
+            Grid embedding as numpy array
+        """
+        # Convert to HSV if specified
+        if self.color_space == "hsv":
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+
+        # Get grid dimensions
+        h, w = img.shape[:2]
+        gh, gw = self.grid_size
+        cell_h, cell_w = h // gh, w // gw
+
+        # Special case for 1x1 grid
+        if gh == 1 and gw == 1:
+            mean_color = np.mean(img, axis=(0, 1))
+            # For single cell, we want to preserve the original pixel values
+            # No need to normalize to unit length
+            return mean_color.astype(np.float32)
+
+        # Initialize feature array
+        features = np.zeros((gh * gw * 3,), dtype=np.float32)
+
+        # Compute mean color for each cell
+        for i in range(gh):
+            for j in range(gw):
+                # Extract cell
+                cell = img[i * cell_h : (i + 1) * cell_h, j * cell_w : (j + 1) * cell_w]
+                # Compute mean color
+                mean_color = np.mean(cell, axis=(0, 1))
+                # Store in feature array
+                features[i * gw * 3 + j * 3 : i * gw * 3 + j * 3 + 3] = mean_color
+
+        # Normalize if requested
+        if self.normalize:
+            features = features / np.linalg.norm(features)
+
+        return features

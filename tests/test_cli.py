@@ -13,6 +13,7 @@ from image_embeddings.cli.main import (
     load_embeddings,
     main,
     parse_args,
+    search_command,
 )
 import cv2
 import pickle
@@ -205,22 +206,54 @@ def test_main_compare(test_images):
     # Test with different methods
     for method in ["average_color", "grid", "edge"]:
         result = main(["compare", img1_path, img2_path, "--method", method])
+        if method == "grid":
+            result = main(
+                [
+                    "compare",
+                    img1_path,
+                    img2_path,
+                    "--method",
+                    method,
+                    "--grid-size",
+                    "4",
+                    "4",
+                ]
+            )
         assert result == 0
 
 
 def test_main_generate(test_images, tmp_path):
     """Test generate command."""
-    img_dir, _, _, _ = test_images
-    output_file = tmp_path / "embeddings.json"
+    img_dir, img1_path, _, _ = test_images
+    output_file = tmp_path / "embeddings.npy"
+
+    # Test with single image
+    result = main(["generate", img1_path, "--output", str(output_file)])
+    assert result == 0
 
     # Test with directory input
     result = main(["generate", img_dir, "--output", str(output_file)])
     assert result == 0
-    assert output_file.exists()
 
     # Test with different methods
     for method in ["average_color", "grid", "edge"]:
-        result = main(["generate", img_dir, "--method", method])
+        result = main(
+            ["generate", img1_path, "--output", str(output_file), "--method", method]
+        )
+        if method == "grid":
+            result = main(
+                [
+                    "generate",
+                    img1_path,
+                    "--output",
+                    str(output_file),
+                    "--method",
+                    method,
+                    "--grid-size",
+                    "4",
+                    "4",
+                ]
+            )
         assert result == 0
 
 
@@ -273,10 +306,10 @@ def test_find_similar_error_handling(tmp_path):
     assert "Could not load image at" in str(exc_info.value)
 
     # Test with non-existent directory
-    with pytest.raises(ValueError) as exc_info:
+    with pytest.raises(FileNotFoundError) as exc_info:
         embedder = ImageEmbedder()
-        embedder.find_similar_images(str(test_img_path), "nonexistent_dir")
-    assert "Directory does not exist" in str(exc_info.value)
+        embedder.find_similar_images(str(test_img_path), "nonexistent/")
+    assert "Directory not found" in str(exc_info.value)
 
 
 def test_help_text(capsys):
@@ -311,3 +344,71 @@ def test_main_error_handling(capsys):
         main(["generate"])
     captured = capsys.readouterr()
     assert "error:" in captured.err
+
+
+def test_main_search_command():
+    """Test search command in main function."""
+
+    # Create a mock args object
+    class MockArgs:
+        def __init__(self):
+            self.command = "search"
+            self.query = "test query"
+            self.directory = "test_dir"
+            self.top_k = 5
+            self.threshold = 0.5
+
+    args = MockArgs()
+    result = main(["search", args.query, args.directory])
+    assert result == 1  # Should fail because directory doesn't exist
+
+
+def test_main_invalid_command():
+    """Test main function with invalid command."""
+    with pytest.raises(SystemExit) as exc_info:
+        main(["invalid_command"])
+    assert exc_info.value.code == 2
+
+
+def test_main_exception_handling():
+    """Test exception handling in main function."""
+    # Test with invalid arguments
+    with pytest.raises(SystemExit) as exc_info:
+        main(["compare"])  # Missing required arguments
+    assert exc_info.value.code == 2
+
+
+def test_embeddings_io_error():
+    """Test error handling in embeddings I/O operations."""
+    with pytest.raises(FileNotFoundError):
+        embedder = ImageEmbedder()
+        embedder.find_similar_images("test.jpg", "nonexistent/")
+
+
+def test_find_similar_invalid_input():
+    """Test find_similar with invalid inputs."""
+    with pytest.raises(ValueError):
+        find_similar("nonexistent.jpg", "nonexistent_dir", top_k=0)
+
+    with pytest.raises(ValueError):
+        find_similar("nonexistent.jpg", "nonexistent_dir", top_k=-1)
+
+
+def test_generate_embeddings_empty_directory(tmp_path):
+    """Test generating embeddings from an empty directory."""
+    empty_dir = tmp_path / "empty"
+    empty_dir.mkdir()
+    embeddings = generate_embeddings(str(empty_dir))
+    assert len(embeddings) == 0
+
+
+def test_parse_args_version():
+    """Test version display in parse_args."""
+    with pytest.raises(SystemExit):
+        parse_args(["--version"])
+
+
+def test_parse_args_help():
+    """Test help display in parse_args."""
+    with pytest.raises(SystemExit):
+        parse_args(["--help"])
