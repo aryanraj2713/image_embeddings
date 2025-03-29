@@ -28,9 +28,7 @@ def compare_images(embedder: ImageEmbedder, image1_path: str, image2_path: str) 
 
     # Visualize results
     fig = plot_similar_images(
-        image1_path,
-        [(image2_path, similarity)],
-        title=f"Similarity: {similarity:.4f}"
+        image1_path, [(image2_path, similarity)], title=f"Similarity: {similarity:.4f}"
     )
     fig.show()
 

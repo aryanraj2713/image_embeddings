@@ -265,20 +265,20 @@ class ImageEmbedder:
         """
         import json
 
-        if not hasattr(self, '_embeddings') or not hasattr(self, '_image_paths'):
+        if not hasattr(self, "_embeddings") or not hasattr(self, "_image_paths"):
             raise ValueError("No embeddings to save. Generate embeddings first.")
 
         data = {
-            'embeddings': [emb.tolist() for emb in self._embeddings],
-            'image_paths': self._image_paths,
-            'method': self.method,
-            'target_size': self.target_size,
-            'grid_size': self.grid_size,
-            'normalize': self.normalize,
-            'color_space': self.color_space
+            "embeddings": [emb.tolist() for emb in self._embeddings],
+            "image_paths": self._image_paths,
+            "method": self.method,
+            "target_size": self.target_size,
+            "grid_size": self.grid_size,
+            "normalize": self.normalize,
+            "color_space": self.color_space,
         }
 
-        with open(filepath, 'w') as f:
+        with open(filepath, "w") as f:
             json.dump(data, f)
 
     def load_embeddings(self, filepath: str) -> None:
@@ -295,13 +295,13 @@ class ImageEmbedder:
         if not os.path.exists(filepath):
             raise FileNotFoundError(f"Embeddings file not found: {filepath}")
 
-        with open(filepath, 'r') as f:
+        with open(filepath, "r") as f:
             data = json.load(f)
 
-        self._embeddings = [np.array(emb) for emb in data['embeddings']]
-        self._image_paths = data['image_paths']
-        self.method = data['method']
-        self.target_size = tuple(data['target_size'])
-        self.grid_size = tuple(data['grid_size'])
-        self.normalize = data['normalize']
-        self.color_space = data['color_space']
+        self._embeddings = [np.array(emb) for emb in data["embeddings"]]
+        self._image_paths = data["image_paths"]
+        self.method = data["method"]
+        self.target_size = tuple(data["target_size"])
+        self.grid_size = tuple(data["grid_size"])
+        self.normalize = data["normalize"]
+        self.color_space = data["color_space"]
