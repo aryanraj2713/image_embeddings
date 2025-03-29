@@ -48,15 +48,17 @@ class SemanticSearcher:
         Raises:
             FileNotFoundError: If the image file does not exist.
         """
-        if not Path(image_path).exists():
-            raise FileNotFoundError(f"Image not found: {image_path}")
+        if not os.path.exists(image_path):
+            raise FileNotFoundError(f"Image file not found: {image_path}")
 
-        image = Image.open(image_path).convert("RGB")
+        image = Image.open(image_path).convert('RGB')
         image = self.preprocess(image).unsqueeze(0).to(self.device)
+        
         with torch.no_grad():
             image_features = self.model.encode_image(image)
-            image_features = image_features / image_features.norm(dim=-1, keepdim=True)
-        return image_features
+            image_features /= image_features.norm(dim=-1, keepdim=True)
+        
+        return image_features.squeeze(0)
 
     def _get_text_embedding(self, text: str) -> torch.Tensor:
         """Get embedding for a text query.
@@ -171,6 +173,47 @@ class SemanticSearcher:
         for idx, score in zip(original_indices, top_k_values):
             results.append((self._image_paths[idx], float(score)))
         return results
+
+    def save_embeddings(self, filepath: str) -> None:
+        """Save embeddings to a JSON file.
+
+        Args:
+            filepath: Path to save the embeddings to.
+        """
+        import json
+
+        if self._image_embeddings is None or not self._image_paths:
+            raise ValueError("No embeddings to save. Generate embeddings first.")
+
+        data = {
+            'embeddings': [emb.cpu().numpy().tolist() for emb in self._image_embeddings],
+            'image_paths': self._image_paths,
+            'device': self.device,
+            'model_name': self.model_name
+        }
+
+        with open(filepath, 'w') as f:
+            json.dump(data, f)
+
+    def load_embeddings(self, filepath: str) -> None:
+        """Load embeddings from a JSON file.
+
+        Args:
+            filepath: Path to load the embeddings from.
+
+        Raises:
+            FileNotFoundError: If the file does not exist.
+        """
+        import json
+
+        if not os.path.exists(filepath):
+            raise FileNotFoundError(f"Embeddings file not found: {filepath}")
+
+        with open(filepath, 'r') as f:
+            data = json.load(f)
+
+        self._image_embeddings = [torch.tensor(emb, device=self.device) for emb in data['embeddings']]
+        self._image_paths = data['image_paths']
 
 
 def main():

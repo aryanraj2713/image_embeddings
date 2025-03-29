@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "imgemb"
-version = "0.2.10"
+version = "0.2.13"
 description = "A lightweight Python library for generating image embeddings with semantic search"
 authors = [
     {name = "Aryan Raj", email = "aryanraj2713@gmail.com"}
@@ -54,7 +54,7 @@ imgemb = "imgemb.cli.main:main"
 "Bug Tracker" = "https://github.com/aryanraj2713/image_embeddings/issues"
 
 [tool.setuptools]
-packages = ["imgemb"]
+packages = ["imgemb", "imgemb.cli"]
 
 [tool.pytest.ini_options]
 addopts = "-ra -q"

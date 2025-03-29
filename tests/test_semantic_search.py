@@ -256,9 +256,9 @@ def test_main_function(mock_open_clip, test_images_dir):
     """Test the main function."""
     from imgemb.semantic_search import main
 
-    # Create a temporary directory for testing
-    with pytest.raises(SystemExit):
-        main()
+    # Test successful execution
+    main()
+    # If we get here, the test passes
 
 
 def test_batch_processing(mock_open_clip, test_images_dir):

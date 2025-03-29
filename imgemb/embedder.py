@@ -233,3 +233,75 @@ class ImageEmbedder:
             features = features / np.linalg.norm(features)
 
         return features
+
+    def _get_image_embedding(self, image_path: str) -> np.ndarray:
+        """Get embedding for an image.
+
+        Args:
+            image_path: Path to the image file.
+
+        Returns:
+            Numpy array containing the image embedding.
+
+        Raises:
+            FileNotFoundError: If the image file does not exist.
+        """
+        if not os.path.exists(image_path):
+            raise FileNotFoundError(f"Image file not found: {image_path}")
+
+        image = self.preprocess_image(image_path)
+        if self.method == "average_color":
+            return self._average_color_embedding(image)
+        elif self.method == "grid":
+            return self._grid_embedding(image)
+        else:  # edge
+            return self._edge_embedding(image)
+
+    def save_embeddings(self, filepath: str) -> None:
+        """Save embeddings to a JSON file.
+
+        Args:
+            filepath: Path to save the embeddings to.
+        """
+        import json
+
+        if not hasattr(self, '_embeddings') or not hasattr(self, '_image_paths'):
+            raise ValueError("No embeddings to save. Generate embeddings first.")
+
+        data = {
+            'embeddings': [emb.tolist() for emb in self._embeddings],
+            'image_paths': self._image_paths,
+            'method': self.method,
+            'target_size': self.target_size,
+            'grid_size': self.grid_size,
+            'normalize': self.normalize,
+            'color_space': self.color_space
+        }
+
+        with open(filepath, 'w') as f:
+            json.dump(data, f)
+
+    def load_embeddings(self, filepath: str) -> None:
+        """Load embeddings from a JSON file.
+
+        Args:
+            filepath: Path to load the embeddings from.
+
+        Raises:
+            FileNotFoundError: If the file does not exist.
+        """
+        import json
+
+        if not os.path.exists(filepath):
+            raise FileNotFoundError(f"Embeddings file not found: {filepath}")
+
+        with open(filepath, 'r') as f:
+            data = json.load(f)
+
+        self._embeddings = [np.array(emb) for emb in data['embeddings']]
+        self._image_paths = data['image_paths']
+        self.method = data['method']
+        self.target_size = tuple(data['target_size'])
+        self.grid_size = tuple(data['grid_size'])
+        self.normalize = data['normalize']
+        self.color_space = data['color_space']

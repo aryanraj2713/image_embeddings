@@ -37,7 +37,7 @@ The library supports four distinct embedding methods:
 ```python
 from imgemb import ImageEmbedder
 
-embedder = ImageEmbedder(method="average")
+embedder = ImageEmbedder(method="average_color")
 embedding = embedder.generate_embedding("path/to/image.jpg")
 ```
 
@@ -64,26 +64,33 @@ embedding = embedder.generate_embedding("path/to/image.jpg")
 - Uses OpenAI's CLIP model
 - Returns 512-dimensional embedding
 ```python
-embedder = ImageEmbedder(method="semantic")
-embedding = embedder.generate_embedding("path/to/image.jpg")
+from imgemb import SemanticSearcher
+
+# Initialize searcher
+searcher = SemanticSearcher(device="cuda")  # Use GPU if available
+
+# Generate embedding for an image
+embedding = searcher._get_image_embedding("path/to/image.jpg")
 ```
 
 ### 2. Similarity Search
 
 #### Basic Search
 ```python
-from imgemb import ImageEmbedder
+from imgemb import ImageEmbedder, SemanticSearcher
 
-# Initialize embedder
-embedder = ImageEmbedder(method="semantic")
-
-# Find similar images
+# For basic image similarity (using color, grid, or edge features)
+embedder = ImageEmbedder(method="grid")  # or "average_color" or "edge"
 results = embedder.find_similar_images(
     query_image="query.jpg",
     image_directory="path/to/images/",
-    top_k=5,
-    distance_metric="cosine"
+    top_k=5
 )
+
+# For semantic search (using CLIP)
+searcher = SemanticSearcher(device="cuda")  # Use GPU if available
+searcher.index_directory("path/to/images/")
+results = searcher.search("a photo of a mountain", top_k=5)
 
 # Results format: List[Tuple[str, float]]
 # [(image_path, similarity_score), ...]
@@ -92,12 +99,14 @@ results = embedder.find_similar_images(
 #### Batch Processing
 ```python
 # Process multiple queries efficiently
+embedder = ImageEmbedder(method="grid")
 query_images = ["query1.jpg", "query2.jpg", "query3.jpg"]
-batch_results = embedder.batch_find_similar_images(
-    query_images=query_images,
-    image_directory="path/to/images/",
-    top_k=5
-)
+for query in query_images:
+    results = embedder.find_similar_images(
+        query_image=query,
+        image_directory="path/to/images/",
+        top_k=5
+    )
 ```
 
 ### 3. Visualization
@@ -138,13 +147,12 @@ The library provides a comprehensive CLI for common operations:
 
 ```bash
 # Generate embeddings for a directory of images
-imgemb generate images/ --output embeddings.json --method semantic
+imgemb generate images/ --output embeddings.json --method grid
 
 # Find similar images
 imgemb find-similar query.jpg images/ \
-    --method semantic \
+    --method grid \
     --top-k 5 \
-    --metric cosine \
     --output results.json
 
 # Semantic text-to-image search
@@ -199,17 +207,18 @@ embedder = ImageEmbedder(method="grid")
 results = embedder.find_similar_images(
     "query.jpg",
     "images/",
-    distance_metric=custom_distance
+    top_k=5
 )
 ```
 
 ### Embedding Persistence
 ```python
 # Save embeddings
-embedder.save_embeddings("embeddings.json")
+import numpy as np
+np.save("embeddings.npy", embeddings)
 
 # Load embeddings
-embedder.load_embeddings("embeddings.json")
+embeddings = np.load("embeddings.npy")
 ```
 
 ## Testing
